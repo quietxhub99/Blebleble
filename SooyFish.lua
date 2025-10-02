@@ -252,439 +252,196 @@ local SettingsTab = AllMenu:Tab({
 -------------------------------------------
 
 
--------------------------------------------
------ =======[ AUTO FISH TAB ]
--------------------------------------------
+-------------------------------------------  
+----- =======[ AUTO FISH TAB ]  
+-------------------------------------------  
 
 local FuncAutoFish = {
 	REReplicateTextEffect = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateTextEffect"],
 	autofish = false,
 	perfectCast = true,
-	customDelay = 1,
 	fishingActive = false,
 	delayInitialized = false
 }
 
 
-local fastRods = {
-	["Ares Rod"] = true,
-	["Angler Rod"] = true,
-	["Ghostfinn Rod"] = true 
+local RodDelays = {
+	["Ares Rod"] = {custom = {1.0, 1.2}, bypass = 1.3},
+	["Angler Rod"] = {custom = {1.0, 1.2}, bypass = 1.1},
+	["Ghostfinn Rod"] = {custom = {1.0, 1.2}, bypass = 0.57},
+
+	["Astral Rod"] = {custom = {1.4, 2.0}, bypass = 1.5},
+	["Fluorescent Rod"] = {custom = {1.4, 2.0}, bypass = 1.57},
+	["Chrome Rod"] = {custom = {1.4, 2.0}, bypass = 2.22},
+	["Steampunk Rod"] = {custom = {1.4, 2.0}, bypass = 2.4},
+
+	["Lucky Rod"] = {custom = {3.0, 5.0}, bypass = 3.6},
+	["Midnight Rod"] = {custom = {3.0, 5.0}, bypass = 2.5},
+	["Demascus Rod"] = {custom = {3.0, 5.0}, bypass = 3.9},
+	["Grass Rod"] = {custom = {3.0, 5.0}, bypass = 3.8},
+	["Luck Rod"] = {custom = {3.0, 5.0}, bypass = 4.2},
+	["Carbon Rod"] = {custom = {3.0, 5.0}, bypass = 4.0},
+	["Lava Rod"] = {custom = {3.0, 5.0}, bypass = 4.2},
+	["Starter Rod"] = {custom = {3.0, 5.0}, bypass = 3.3}
 }
 
-local mediumRods = {
-	["Astral Rod"] = true,
-	["Chrome Rod"] = true,
-	["Steampunk Rod"] = true
-}
-
-local veryLowRods = {
-	["Lucky Rod"] = true,
-	["Midnight Rod"] = true,
-	["Demascus Rod"] = true,
-	["Grass Rod"] = true,
-	["Luck Rod"] = true,
-	["Carbon Rod"] = true,
-	["Lava Rod"] = true,
-	["Starter Rod"] = true
-}
+local customDelay = 1
+local BypassDelay = nil
 
 
 local function getValidRodName()
-local player = Players.LocalPlayer
-local display = player.PlayerGui:WaitForChild("Backpack"):WaitForChild("Display")
+	local player = Players.LocalPlayer
+	local display = player.PlayerGui:WaitForChild("Backpack"):WaitForChild("Display")
 
-for _, tile in ipairs(display:GetChildren()) do      
-    local success, itemNamePath = pcall(function()      
-        return tile.Inner.Tags.ItemName      
-    end)      
-    if success and itemNamePath and itemNamePath:IsA("TextLabel") then      
-        local name = itemNamePath.Text      
-        if veryLowRods[name] or fastRods[name] or mediumRods[name] then      
-            return name      
-        end      
-    end      
-end      
-return nil
-
+	for _, tile in ipairs(display:GetChildren()) do
+		local success, itemNamePath = pcall(function()
+			return tile.Inner.Tags.ItemName
+		end)
+		if success and itemNamePath and itemNamePath:IsA("TextLabel") then
+			local name = itemNamePath.Text
+			if RodDelays[name] then
+				return name
+			end
+		end
+	end
+	return nil
 end
+
 
 local function updateDelayBasedOnRod(showNotify)
-if FuncAutoFish.delayInitialized then return end
+	if FuncAutoFish.delayInitialized then return end
+	local rodName = getValidRodName()
 
-local rodName = getValidRodName()      
-if rodName then
-    if fastRods[rodName] then      
-        FuncAutoFish.customDelay = math.random(100, 120) / 100
-    elseif mediumRods[rodName] then
-    	  FuncAutoFish.customDelay = math.random(140, 200) / 100
-    elseif veryLowRods[rodName] then
-    	  FuncAutoFish.customDelay = math.random(300, 500) / 100
-    else      
-        FuncAutoFish.customDelay = 10      
-    end      
-    FuncAutoFish.delayInitialized = true      
-    if showNotify and FuncAutoFish.autofish then      
-        NotifySuccess("Rod Detected", string.format("Detected Rod: %s | Delay: %.2fs", rodName, FuncAutoFish.customDelay))      
-    end      
-else      
-    FuncAutoFish.customDelay = 10      
-    FuncAutoFish.delayInitialized = true       
-    if showNotify and FuncAutoFish.autofish then      
-        NotifyWarning("Rod Detection Failed", "No valid rod found in list. Default delay 10s applied.")      
-    end      
+	if rodName and RodDelays[rodName] then
+		local rodData = RodDelays[rodName]
+		customDelay = math.random(rodData.custom[1] * 100, rodData.custom[2] * 100) / 100
+		if not BypassDelay then
+			BypassDelay = rodData.bypass
+		end
+		FuncAutoFish.delayInitialized = true
+		if showNotify and FuncAutoFish.autofish then
+			NotifySuccess("Rod Detected", string.format(
+				"Rod: %s | Delay: %.2fs | Bypass: %.2fs",
+				rodName, customDelay, BypassDelay
+			))
+		end
+	else
+		customDelay = 2
+		if not BypassDelay then
+			BypassDelay = 1
+		end
+		FuncAutoFish.delayInitialized = true
+		if showNotify and FuncAutoFish.autofish then
+			NotifyWarning("Rod Detection Failed", "No valid rod found. Default delay applied.")
+		end
+	end
 end
 
-end
 
-local function setupRodWatcher()
-    local player = Players.LocalPlayer
-    local display = player.PlayerGui:WaitForChild("Backpack"):WaitForChild("Display")
-    display.ChildAdded:Connect(function()
-        task.wait(0.05)
-        if not FuncAutoFish.delayInitialized then
-            updateDelayBasedOnRod(true)
-        end
-    end)
-end
-setupRodWatcher()
-
--- FISH THRESHOLD V2
 local obtainedFishUUIDs = {}
-local obtainedLimit = 30
+local obtainedLimit = 35
 
-local RemoteV2 = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
-RemoteV2.OnClientEvent:Connect(function(_, _, data)
-    if data and data.InventoryItem and data.InventoryItem.UUID then
-        table.insert(obtainedFishUUIDs, data.InventoryItem.UUID)
-    end
+local RemoteFish = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
+RemoteFish.OnClientEvent:Connect(function(_, _, data)
+	if data and data.InventoryItem and data.InventoryItem.UUID then
+		table.insert(obtainedFishUUIDs, data.InventoryItem.UUID)
+	end
 end)
 
 local function sellItems()
-    if #obtainedFishUUIDs > 0 then
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index")
-            :WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RF/SellAllItems"):InvokeServer()
-    end
-    obtainedFishUUIDs = {}
+	if #obtainedFishUUIDs > 0 then
+		ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellAllItems"]:InvokeServer()
+	end
+	obtainedFishUUIDs = {}
 end
 
 local function monitorFishThreshold()
-    task.spawn(function()
-        while FuncAutoFish.autofish do
-            if #obtainedFishUUIDs >= obtainedLimit then
-                NotifyInfo("Fish Threshold Reached", "Selling all fishes...")
-                sellItems()
-                obtainedFishUUIDs = {}
-                task.wait(0.5)
-            end
-            task.wait(0.3)
-        end
-    end)
+	task.spawn(function()
+		while FuncAutoFish.autofish do
+			if #obtainedFishUUIDs >= obtainedLimit then
+				NotifyInfo("Fish Threshold Reached", "Selling all fishes...")
+				sellItems()
+				task.wait(0.5)
+			end
+			task.wait(0.3)
+		end
+	end)
 end
 
-FuncAutoFish.REReplicateTextEffect.OnClientEvent:Connect(function(data)
-    if FuncAutoFish.autofish and FuncAutoFish.fishingActive
-    and data
-    and data.TextData
-    and data.TextData.EffectType == "Exclaim" then
 
-        local myHead = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Head")      
-        if myHead and data.Container == myHead then      
-            task.spawn(function()      
-                for i = 1, 3 do
-                    task.wait(BypassDelay)
-                    finishRemote:FireServer()      
-                    rconsoleclear()      
-                end      
-            end)      
-        end      
-    end
+FuncAutoFish.REReplicateTextEffect.OnClientEvent:Connect(function(data)
+	if FuncAutoFish.autofish and FuncAutoFish.fishingActive
+	and data and data.TextData and data.TextData.EffectType == "Exclaim" then
+		local myHead = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Head")
+		if myHead and data.Container == myHead then
+			task.spawn(function()
+				for i = 1, 3 do
+					task.wait(BypassDelay or 1)
+					finishRemote:FireServer()
+				end
+			end)
+		end
+	end
 end)
+
 
 function StartAutoFish()
-FuncAutoFish.autofish = true
-updateDelayBasedOnRod(true)
-monitorFishThreshold()
-task.spawn(function()      
-    while FuncAutoFish.autofish do      
-        pcall(function()      
-            FuncAutoFish.fishingActive = true      
-  
-            local equipRemote = net:WaitForChild("RE/EquipToolFromHotbar")      
-            equipRemote:FireServer(1)      
-            task.wait(0.1)      
-  
-            local chargeRemote = ReplicatedStorage      
-                .Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]      
-            chargeRemote:InvokeServer(workspace:GetServerTimeNow())      
-                  
-            task.wait(0.5)      
-  
-            local timestamp = workspace:GetServerTimeNow()      
-            RodShake:Play()      
-            rodRemote:InvokeServer(timestamp)      
-  
-            local baseX, baseY = -0.7499996423721313, 0.991067629351885      
-            local x, y      
-            if FuncAutoFish.perfectCast then      
-                x = baseX + (math.random(-500, 500) / 10000000)      
-                y = baseY + (math.random(-500, 500) / 10000000)      
-            else      
-                x = math.random(-1000, 1000) / 1000      
-                y = math.random(0, 1000) / 1000      
-            end      
-  
-            RodIdle:Play()      
-            miniGameRemote:InvokeServer(x, y)      
-  
-            task.wait(FuncAutoFish.customDelay)      
-  
-            FuncAutoFish.fishingActive = false      
-        end)      
-    end      
-end)
+	FuncAutoFish.autofish = true
+	updateDelayBasedOnRod(true)
+	monitorFishThreshold()
 
+	task.spawn(function()
+		while FuncAutoFish.autofish do
+			pcall(function()
+				FuncAutoFish.fishingActive = true
+
+				local equipRemote = net:WaitForChild("RE/EquipToolFromHotbar")
+				equipRemote:FireServer(1)
+				task.wait(0.1)
+
+				local chargeRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]
+				chargeRemote:InvokeServer(workspace:GetServerTimeNow())
+				task.wait(0.5)
+
+				local timestamp = workspace:GetServerTimeNow()
+				RodShake:Play()
+				rodRemote:InvokeServer(timestamp)
+
+				local baseX, baseY = -0.7499996423721313, 0.991067629351885
+				local x, y
+				if FuncAutoFish.perfectCast then
+					x = baseX + (math.random(-500, 500) / 10000000)
+					y = baseY + (math.random(-500, 500) / 10000000)
+				else
+					x = math.random(-1000, 1000) / 1000
+					y = math.random(0, 1000) / 1000
+				end
+
+				RodIdle:Play()
+				miniGameRemote:InvokeServer(x, y)
+
+				task.wait(customDelay)
+				FuncAutoFish.fishingActive = false
+			end)
+		end
+	end)
 end
 
 function StopAutoFish()
-FuncAutoFish.autofish = false
-FuncAutoFish.fishingActive = false
-FuncAutoFish.delayInitialized = false
+	FuncAutoFish.autofish = false
+	FuncAutoFish.fishingActive = false
+	FuncAutoFish.delayInitialized = false
 end
-
-local FuncAutoFishV2 = {
-	REReplicateTextEffectV2 = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateTextEffect"],
-	autofishV2 = false,
-	perfectCastV2 = true,
-	fishingActiveV2 = false,
-	delayInitializedV2 = false
-}
-
-local RodDelaysV2 = {
-    ["Ares Rod"] = {custom = 1.12, bypass = 1.45},
-    ["Angler Rod"] = {custom = 1.12, bypass = 1.45},
-    ["Ghostfinn Rod"] = {custom = 1.12, bypass = 1.45},
-
-    ["Astral Rod"] = {custom = 1.9, bypass = 1.45},
-    ["Chrome Rod"] = {custom = 2.3, bypass = 2},
-    ["Steampunk Rod"] = {custom = 2.5, bypass = 2.3},
-
-    ["Lucky Rod"] = {custom = 3.5, bypass = 3.6},
-    ["Midnight Rod"] = {custom = 3.3, bypass = 3.4},
-    ["Demascus Rod"] = {custom = 3.9, bypass = 3.8},
-    ["Grass Rod"] = {custom = 3.8, bypass = 3.9},
-    ["Luck Rod"] = {custom = 4.2, bypass = 4.1},
-    ["Carbon Rod"] = {custom = 4, bypass = 3.8},
-    ["Lava Rod"] = {custom = 4.2, bypass = 4.1},
-    ["Starter Rod"] = {custom = 4.3, bypass = 4.2},
-}
-
-local customDelayV2 = 1
-local BypassDelayV2 = 0.5
-
-local function getValidRodNameV2()
-    local player = Players.LocalPlayer
-    local display = player.PlayerGui:WaitForChild("Backpack"):WaitForChild("Display")
-    for _, tile in ipairs(display:GetChildren()) do
-        local success, itemNamePath = pcall(function()
-            return tile.Inner.Tags.ItemName
-        end)
-        if success and itemNamePath and itemNamePath:IsA("TextLabel") then
-            local name = itemNamePath.Text
-            if RodDelaysV2[name] then
-                return name
-            end
-        end
-    end
-    return nil
-end
-
-local function updateDelayBasedOnRodV2(showNotify)
-    if FuncAutoFishV2.delayInitializedV2 then return end
-    local rodName = getValidRodNameV2()
-    if rodName and RodDelaysV2[rodName] then
-        customDelayV2 = RodDelaysV2[rodName].custom
-        BypassDelayV2 = RodDelaysV2[rodName].bypass
-        FuncAutoFishV2.delayInitializedV2 = true
-        if showNotify and FuncAutoFishV2.autofishV2 then
-            NotifySuccess("Rod Detected (V2)", string.format("Detected Rod: %s | Delay: %.2fs | Bypass: %.2fs", rodName, customDelayV2, BypassDelayV2))
-        end
-    else
-        customDelayV2 = 10
-        BypassDelayV2 = 1
-        FuncAutoFishV2.delayInitializedV2 = true
-        if showNotify and FuncAutoFishV2.autofishV2 then
-            NotifyWarning("Rod Detection Failed (V2)", "No valid rod found. Default delay applied.")
-        end
-    end
-end
-
--- FISH THRESHOLD V2
-local obtainedFishUUIDsV2 = {}
-local obtainedLimitV2 = 30
-
-local RemoteV2 = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
-RemoteV2.OnClientEvent:Connect(function(_, _, data)
-    if data and data.InventoryItem and data.InventoryItem.UUID then
-        table.insert(obtainedFishUUIDsV2, data.InventoryItem.UUID)
-    end
-end)
-
-local function sellItemsV2()
-    if #obtainedFishUUIDsV2 > 0 then
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index")
-            :WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RF/SellAllItems"):InvokeServer()
-    end
-    obtainedFishUUIDsV2 = {}
-end
-
-local function monitorFishThresholdV2()
-    task.spawn(function()
-        while FuncAutoFishV2.autofishV2 do
-            if #obtainedFishUUIDsV2 >= obtainedLimitV2 then
-                NotifyInfo("Fish Threshold Reached (V2)", "Selling all fishes...")
-                sellItemsV2()
-                obtainedFishUUIDsV2 = {}
-                task.wait(0.5)
-            end
-            task.wait(0.3)
-        end
-    end)
-end
-
-
-FuncAutoFishV2.REReplicateTextEffectV2.OnClientEvent:Connect(function(data)
-    if FuncAutoFishV2.autofishV2 and FuncAutoFishV2.fishingActiveV2
-    and data
-    and data.TextData
-    and data.TextData.EffectType == "Exclaim" then
-
-        local myHead = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Head")
-        if myHead and data.Container == myHead then
-            task.spawn(function()
-                for i = 1, 3 do
-                    task.wait(BypassDelayV2)
-                    finishRemote:FireServer()
-                    rconsoleclear()
-                end
-            end)
-        end
-    end
-end)
-
-function StartAutoFishV2()
-    FuncAutoFishV2.autofishV2 = true
-    updateDelayBasedOnRodV2(true)
-    monitorFishThresholdV2()
-    task.spawn(function()
-        while FuncAutoFishV2.autofishV2 do
-            pcall(function()
-                FuncAutoFishV2.fishingActiveV2 = true
-
-                local equipRemote = net:WaitForChild("RE/EquipToolFromHotbar")
-                equipRemote:FireServer(1)
-                task.wait(0.1)
-
-                local chargeRemote = ReplicatedStorage
-                    .Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]
-                chargeRemote:InvokeServer(workspace:GetServerTimeNow())
-                task.wait(0.5)
-
-                local timestamp = workspace:GetServerTimeNow()
-                RodShake:Play()
-                rodRemote:InvokeServer(timestamp)
-
-                local baseX, baseY = -0.7499996423721313, 1
-                local x, y
-                if FuncAutoFishV2.perfectCastV2 then
-                    x = baseX + (math.random(-500, 500) / 10000000)
-                    y = baseY + (math.random(-500, 500) / 10000000)
-                else
-                    x = math.random(-1000, 1000) / 1000
-                    y = math.random(0, 1000) / 1000
-                end
-
-                RodIdle:Play()
-                miniGameRemote:InvokeServer(x, y)
-
-                task.wait(customDelayV2)
-                FuncAutoFishV2.fishingActiveV2 = false
-            end)
-        end
-    end)
-end
-
-function StopAutoFishV2()
-    FuncAutoFishV2.autofishV2 = false
-    FuncAutoFishV2.fishingActiveV2 = false
-    FuncAutoFishV2.delayInitializedV2 = false
-    RodIdle:Stop()
-    RodShake:Stop()
-    RodReel:Stop()
-end
-
-AutoFish:Input({
-	Title = "Bypass Delay",
-	Desc = "Use 1 for rod above a Ares",
-	Placeholder = "Example: 1",
-	Value = nil,
-	Callback = function(value)
-		if Notifs.DelayBlockNotif then
-			Notifs.DelayBlockNotif = false
-			return
-		end
-		local number = tonumber(value)
-		if number then
-		  BypassDelay = number
-			NotifySuccess("Bypass Delay", "Bypass Delay set to " .. number)
-		else
-		  NotifyError("Invalid Input", "Failed to convert input to number.")
-		end
-	end,
-})
-
-local FishThres = AutoFish:Input({
-	Title = "Fish Threshold",
-	Placeholder = "Example: 1500",
-	Value = nil,
-	Callback = function(value)
-		if Notifs.FishBlockNotif then
-			Notifs.FishBlockNotif = false
-			return
-		end
-		local number = tonumber(value)
-		if number then
-		  obtainedLimit = number
-		  obtainedLimitV2 = number
-			NotifySuccess("Threshold Set", "Fish threshold set to " .. number)
-		else
-		  NotifyError("Invalid Input", "Failed to convert input to number.")
-		end
-	end,
-})
-
-myConfig:Register("FishThreshold", FishThres)
 
 AutoFish:Toggle({
-	Title = "Auto Fish V2",
+	Title = "Auto Fish",
 	Callback = function(value)
 		if value then
-			StartAutoFishV2()
+			StartAutoFish()
 		else
-			StopAutoFishV2()
+			StopAutoFish()
 		end
 	end
-})
-
-AutoFish:Toggle({
-    Title = "Auto Fish (Custom Delay)",
-    Callback = function(value)
-        if value then
-            StartAutoFish()
-        else
-            StopAutoFish()
-        end
-    end
 })
 
 
