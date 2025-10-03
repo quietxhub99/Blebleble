@@ -418,6 +418,7 @@ local RodDelays = {
 	["Angler Rod"] = {custom = {1.0, 1.2}, bypass = 1.1},
 	["Ghostfinn Rod"] = {custom = {1.0, 1.2}, bypass = 0.57},
 
+	["Hazmat Rod"] = {custom = {1.4, 2.0}, bypass = 1.5},
 	["Astral Rod"] = {custom = {1.4, 2.0}, bypass = 1.5},
 	["Chrome Rod"] = {custom = {1.4, 2.0}, bypass = 2.22},
 	["Steampunk Rod"] = {custom = {1.4, 2.0}, bypass = 2.4},

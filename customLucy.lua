@@ -324,6 +324,7 @@ local fastRods = {
 }
 
 local mediumRods = {
+	["Hazmat Rod"] = true,
 	["Astral Rod"] = true,
 	["Chrome Rod"] = true,
 	["Steampunk Rod"] = true
