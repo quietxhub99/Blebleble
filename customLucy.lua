@@ -311,382 +311,193 @@ local FuncAutoFish = {
 	REReplicateTextEffect = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateTextEffect"],
 	autofish = false,
 	perfectCast = true,
-	customDelay = 1,
 	fishingActive = false,
 	delayInitialized = false
 }
 
+local RodDelays = {
+	["Ares Rod"] = {custom = {1.0, 1.2}, bypass = 1.3},
+	["Angler Rod"] = {custom = {1.0, 1.2}, bypass = 1.1},
+	["Ghostfinn Rod"] = {custom = {1.0, 1.2}, bypass = 0.57},
+	["Bamboo Rod"] = {custom = {1.0, 1.1}, bypass = 0.5},
+  
+  ["Fluorescent Rod"] = {custom = {1.4, 2.0}, bypass = 1.55},
+	["Astral Rod"] = {custom = {1.4, 2.0}, bypass = 1.5},
+	["Hazmat Rod"] = {custom = {1.4, 2.0}, bypass = 1.5},
+	["Chrome Rod"] = {custom = {1.4, 2.0}, bypass = 2.22},
+	["Steampunk Rod"] = {custom = {1.4, 2.0}, bypass = 2.4},
 
-local fastRods = {
-	["Ares Rod"] = true,
-	["Angler Rod"] = true,
-	["Ghostfinn Rod"] = true 
+	["Lucky Rod"] = {custom = {3.0, 5.0}, bypass = 3.6},
+	["Midnight Rod"] = {custom = {3.0, 5.0}, bypass = 2.5},
+	["Demascus Rod"] = {custom = {3.0, 5.0}, bypass = 3.9},
+	["Grass Rod"] = {custom = {3.0, 5.0}, bypass = 3.8},
+	["Luck Rod"] = {custom = {3.0, 5.0}, bypass = 4.2},
+	["Carbon Rod"] = {custom = {3.0, 5.0}, bypass = 4.0},
+	["Lava Rod"] = {custom = {3.0, 5.0}, bypass = 4.2},
+	["Starter Rod"] = {custom = {3.0, 5.0}, bypass = 3.3}
 }
 
-local mediumRods = {
-	["Hazmat Rod"] = true,
-	["Astral Rod"] = true,
-	["Chrome Rod"] = true,
-	["Steampunk Rod"] = true
-}
-
-local veryLowRods = {
-	["Lucky Rod"] = true,
-	["Midnight Rod"] = true,
-	["Demascus Rod"] = true,
-	["Grass Rod"] = true,
-	["Luck Rod"] = true,
-	["Carbon Rod"] = true,
-	["Lava Rod"] = true,
-	["Starter Rod"] = true
-}
+local customDelay = 1
+local BypassDelay = nil
 
 
 local function getValidRodName()
-local player = Players.LocalPlayer
-local display = player.PlayerGui:WaitForChild("Backpack"):WaitForChild("Display")
+	local player = Players.LocalPlayer
+	local display = player.PlayerGui:WaitForChild("Backpack"):WaitForChild("Display")
 
-for _, tile in ipairs(display:GetChildren()) do      
-    local success, itemNamePath = pcall(function()      
-        return tile.Inner.Tags.ItemName      
-    end)      
-    if success and itemNamePath and itemNamePath:IsA("TextLabel") then      
-        local name = itemNamePath.Text      
-        if veryLowRods[name] or fastRods[name] or mediumRods[name] then      
-            return name      
-        end      
-    end      
-end      
-return nil
-
+	for _, tile in ipairs(display:GetChildren()) do
+		local success, itemNamePath = pcall(function()
+			return tile.Inner.Tags.ItemName
+		end)
+		if success and itemNamePath and itemNamePath:IsA("TextLabel") then
+			local name = itemNamePath.Text
+			if RodDelays[name] then
+				return name
+			end
+		end
+	end
+	return nil
 end
+
 
 local function updateDelayBasedOnRod(showNotify)
-if FuncAutoFish.delayInitialized then return end
+	if FuncAutoFish.delayInitialized then return end
+	local rodName = getValidRodName()
 
-local rodName = getValidRodName()      
-if rodName then
-    if fastRods[rodName] then      
-        FuncAutoFish.customDelay = math.random(100, 120) / 100
-    elseif mediumRods[rodName] then
-    	  FuncAutoFish.customDelay = math.random(140, 200) / 100
-    elseif veryLowRods[rodName] then
-    	  FuncAutoFish.customDelay = math.random(300, 500) / 100
-    else      
-        FuncAutoFish.customDelay = 10      
-    end      
-    FuncAutoFish.delayInitialized = true      
-    if showNotify and FuncAutoFish.autofish then      
-        NotifySuccess("Rod Detected", string.format("Detected Rod: %s | Delay: %.2fs", rodName, FuncAutoFish.customDelay))      
-    end      
-else      
-    FuncAutoFish.customDelay = 10      
-    FuncAutoFish.delayInitialized = true       
-    if showNotify and FuncAutoFish.autofish then      
-        NotifyWarning("Rod Detection Failed", "No valid rod found in list. Default delay 10s applied.")      
-    end      
+	if rodName and RodDelays[rodName] then
+		local rodData = RodDelays[rodName]
+		customDelay = math.random(rodData.custom[1] * 100, rodData.custom[2] * 100) / 100
+		if not BypassDelay then
+			BypassDelay = rodData.bypass
+		end
+		FuncAutoFish.delayInitialized = true
+		if showNotify and FuncAutoFish.autofish then
+			NotifySuccess("Rod Detected", string.format(
+				"Rod: %s | Delay: %.2fs | Bypass: %.2fs",
+				rodName, customDelay, BypassDelay
+			))
+		end
+	else
+		customDelay = 10
+		if not BypassDelay then
+			BypassDelay = 1
+		end
+		FuncAutoFish.delayInitialized = true
+		if showNotify and FuncAutoFish.autofish then
+			NotifyWarning("Rod Detection Failed", "No valid rod found. Default delay applied.")
+		end
+	end
 end
 
-end
 
-local function setupRodWatcher()
-    local player = Players.LocalPlayer
-    local display = player.PlayerGui:WaitForChild("Backpack"):WaitForChild("Display")
-    display.ChildAdded:Connect(function()
-        task.wait(0.05)
-        if not FuncAutoFish.delayInitialized then
-            updateDelayBasedOnRod(true)
-        end
-    end)
-end
-setupRodWatcher()
-
--- FISH THRESHOLD V2
 local obtainedFishUUIDs = {}
 local obtainedLimit = 30
 
-local RemoteV2 = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
-RemoteV2.OnClientEvent:Connect(function(_, _, data)
-    if data and data.InventoryItem and data.InventoryItem.UUID then
-        table.insert(obtainedFishUUIDs, data.InventoryItem.UUID)
-    end
+local RemoteFish = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
+RemoteFish.OnClientEvent:Connect(function(_, _, data)
+	if data and data.InventoryItem and data.InventoryItem.UUID then
+		table.insert(obtainedFishUUIDs, data.InventoryItem.UUID)
+	end
 end)
 
 local function sellItems()
-    if #obtainedFishUUIDs > 0 then
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index")
-            :WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RF/SellAllItems"):InvokeServer()
-    end
-    obtainedFishUUIDs = {}
+	if #obtainedFishUUIDs > 0 then
+		ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellAllItems"]:InvokeServer()
+	end
+	obtainedFishUUIDs = {}
 end
 
 local function monitorFishThreshold()
-    task.spawn(function()
-        while FuncAutoFish.autofish do
-            if #obtainedFishUUIDs >= obtainedLimit then
-                NotifyInfo("Fish Threshold Reached", "Selling all fishes...")
-                sellItems()
-                obtainedFishUUIDs = {}
-                task.wait(0.5)
-            end
-            task.wait(0.3)
-        end
-    end)
+	task.spawn(function()
+		while FuncAutoFish.autofish do
+			if #obtainedFishUUIDs >= obtainedLimit then
+				NotifyInfo("Fish Threshold Reached", "Selling all fishes...")
+				sellItems()
+				task.wait(0.5)
+			end
+			task.wait(0.3)
+		end
+	end)
 end
 
-FuncAutoFish.REReplicateTextEffect.OnClientEvent:Connect(function(data)
-    if FuncAutoFish.autofish and FuncAutoFish.fishingActive
-    and data
-    and data.TextData
-    and data.TextData.EffectType == "Exclaim" then
 
-        local myHead = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Head")      
-        if myHead and data.Container == myHead then      
-            task.spawn(function()      
-                for i = 1, 3 do
-                    task.wait(BypassDelay)
-                    finishRemote:FireServer()      
-                    rconsoleclear()      
-                end      
-            end)      
-        end      
-    end
+FuncAutoFish.REReplicateTextEffect.OnClientEvent:Connect(function(data)
+	if FuncAutoFish.autofish and FuncAutoFish.fishingActive
+	and data and data.TextData and data.TextData.EffectType == "Exclaim" then
+		local myHead = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Head")
+		if myHead and data.Container == myHead then
+			task.spawn(function()
+				for i = 1, 3 do
+					task.wait(BypassDelay or 1)
+					finishRemote:FireServer()
+				end
+			end)
+		end
+	end
 end)
+
 
 function StartAutoFish()
-FuncAutoFish.autofish = true
-updateDelayBasedOnRod(true)
-monitorFishThreshold()
-task.spawn(function()      
-    while FuncAutoFish.autofish do      
-        pcall(function()      
-            FuncAutoFish.fishingActive = true      
-  
-            local equipRemote = net:WaitForChild("RE/EquipToolFromHotbar")      
-            equipRemote:FireServer(1)      
-            task.wait(0.1)      
-  
-            local chargeRemote = ReplicatedStorage      
-                .Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]      
-            chargeRemote:InvokeServer(workspace:GetServerTimeNow())      
-                  
-            task.wait(0.5)      
-  
-            local timestamp = workspace:GetServerTimeNow()      
-            RodShake:Play()      
-            rodRemote:InvokeServer(timestamp)      
-  
-            local baseX, baseY = -0.7499996423721313, 0.991067629351885      
-            local x, y      
-            if FuncAutoFish.perfectCast then      
-                x = baseX + (math.random(-500, 500) / 10000000)      
-                y = baseY + (math.random(-500, 500) / 10000000)      
-            else      
-                x = math.random(-1000, 1000) / 1000      
-                y = math.random(0, 1000) / 1000      
-            end      
-  
-            RodIdle:Play()      
-            miniGameRemote:InvokeServer(x, y)      
-  
-            task.wait(FuncAutoFish.customDelay)      
-  
-            FuncAutoFish.fishingActive = false      
-        end)      
-    end      
-end)
+	FuncAutoFish.autofish = true
+	updateDelayBasedOnRod(true)
+	monitorFishThreshold()
 
+	task.spawn(function()
+		while FuncAutoFish.autofish do
+			pcall(function()
+				FuncAutoFish.fishingActive = true
+
+				local equipRemote = net:WaitForChild("RE/EquipToolFromHotbar")
+				equipRemote:FireServer(1)
+				task.wait(0.1)
+
+				local chargeRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]
+				chargeRemote:InvokeServer(workspace:GetServerTimeNow())
+				task.wait(0.5)
+
+				local timestamp = workspace:GetServerTimeNow()
+				RodShake:Play()
+				rodRemote:InvokeServer(timestamp)
+
+				local baseX, baseY = -0.7499996423721313, 0.991067629351885
+				local x, y
+				if FuncAutoFish.perfectCast then
+					x = baseX + (math.random(-500, 500) / 10000000)
+					y = baseY + (math.random(-500, 500) / 10000000)
+				else
+					x = math.random(-1000, 1000) / 1000
+					y = math.random(0, 1000) / 1000
+				end
+
+				RodIdle:Play()
+				miniGameRemote:InvokeServer(x, y)
+
+				task.wait(customDelay)
+				FuncAutoFish.fishingActive = false
+			end)
+		end
+	end)
 end
 
 function StopAutoFish()
-FuncAutoFish.autofish = false
-FuncAutoFish.fishingActive = false
-FuncAutoFish.delayInitialized = false
+	FuncAutoFish.autofish = false
+	FuncAutoFish.fishingActive = false
+	FuncAutoFish.delayInitialized = false
 end
 
-local FuncAutoFishV2 = {
-	REReplicateTextEffectV2 = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateTextEffect"],
-	autofishV2 = false,
-	perfectCastV2 = true,
-	fishingActiveV2 = false,
-	delayInitializedV2 = false
-}
-
-local RodDelaysV2 = {
-    ["Ares Rod"] = {custom = 1.12, bypass = 1.45},
-    ["Angler Rod"] = {custom = 1.12, bypass = 1.45},
-    ["Ghostfinn Rod"] = {custom = 1.12, bypass = 1.45},
-
-    ["Astral Rod"] = {custom = 1.9, bypass = 1.45},
-    ["Chrome Rod"] = {custom = 2.3, bypass = 2},
-    ["Steampunk Rod"] = {custom = 2.5, bypass = 2.3},
-
-    ["Lucky Rod"] = {custom = 3.5, bypass = 3.6},
-    ["Midnight Rod"] = {custom = 3.3, bypass = 3.4},
-    ["Demascus Rod"] = {custom = 3.9, bypass = 3.8},
-    ["Grass Rod"] = {custom = 3.8, bypass = 3.9},
-    ["Luck Rod"] = {custom = 4.2, bypass = 4.1},
-    ["Carbon Rod"] = {custom = 4, bypass = 3.8},
-    ["Lava Rod"] = {custom = 4.2, bypass = 4.1},
-    ["Starter Rod"] = {custom = 4.3, bypass = 4.2},
-}
-
-local customDelayV2 = 1
-local BypassDelayV2 = 0.5
-
-local function getValidRodNameV2()
-    local player = Players.LocalPlayer
-    local display = player.PlayerGui:WaitForChild("Backpack"):WaitForChild("Display")
-    for _, tile in ipairs(display:GetChildren()) do
-        local success, itemNamePath = pcall(function()
-            return tile.Inner.Tags.ItemName
-        end)
-        if success and itemNamePath and itemNamePath:IsA("TextLabel") then
-            local name = itemNamePath.Text
-            if RodDelaysV2[name] then
-                return name
-            end
-        end
-    end
-    return nil
-end
-
-local function updateDelayBasedOnRodV2(showNotify)
-    if FuncAutoFishV2.delayInitializedV2 then return end
-    local rodName = getValidRodNameV2()
-    if rodName and RodDelaysV2[rodName] then
-        customDelayV2 = RodDelaysV2[rodName].custom
-        BypassDelayV2 = RodDelaysV2[rodName].bypass
-        FuncAutoFishV2.delayInitializedV2 = true
-        if showNotify and FuncAutoFishV2.autofishV2 then
-            NotifySuccess("Rod Detected (V2)", string.format("Detected Rod: %s | Delay: %.2fs | Bypass: %.2fs", rodName, customDelayV2, BypassDelayV2))
-        end
-    else
-        customDelayV2 = 10
-        BypassDelayV2 = 1
-        FuncAutoFishV2.delayInitializedV2 = true
-        if showNotify and FuncAutoFishV2.autofishV2 then
-            NotifyWarning("Rod Detection Failed (V2)", "No valid rod found. Default delay applied.")
-        end
-    end
-end
-
--- FISH THRESHOLD V2
-local obtainedFishUUIDsV2 = {}
-local obtainedLimitV2 = 30
-
-local RemoteV2 = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
-RemoteV2.OnClientEvent:Connect(function(_, _, data)
-    if data and data.InventoryItem and data.InventoryItem.UUID then
-        table.insert(obtainedFishUUIDsV2, data.InventoryItem.UUID)
-    end
-end)
-
-local function sellItemsV2()
-    if #obtainedFishUUIDsV2 > 0 then
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index")
-            :WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RF/SellAllItems"):InvokeServer()
-    end
-    obtainedFishUUIDsV2 = {}
-end
-
-local function monitorFishThresholdV2()
-    task.spawn(function()
-        while FuncAutoFishV2.autofishV2 do
-            if #obtainedFishUUIDsV2 >= obtainedLimitV2 then
-                NotifyInfo("Fish Threshold Reached (V2)", "Selling all fishes...")
-                sellItemsV2()
-                obtainedFishUUIDsV2 = {}
-                task.wait(0.5)
-            end
-            task.wait(0.3)
-        end
-    end)
-end
-
-
-FuncAutoFishV2.REReplicateTextEffectV2.OnClientEvent:Connect(function(data)
-    if FuncAutoFishV2.autofishV2 and FuncAutoFishV2.fishingActiveV2
-    and data
-    and data.TextData
-    and data.TextData.EffectType == "Exclaim" then
-
-        local myHead = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Head")
-        if myHead and data.Container == myHead then
-            task.spawn(function()
-                for i = 1, 3 do
-                    task.wait(BypassDelayV2)
-                    finishRemote:FireServer()
-                    rconsoleclear()
-                end
-            end)
-        end
-    end
-end)
-
-function StartAutoFishV2()
-    FuncAutoFishV2.autofishV2 = true
-    updateDelayBasedOnRodV2(true)
-    monitorFishThresholdV2()
-    task.spawn(function()
-        while FuncAutoFishV2.autofishV2 do
-            pcall(function()
-                FuncAutoFishV2.fishingActiveV2 = true
-
-                local equipRemote = net:WaitForChild("RE/EquipToolFromHotbar")
-                equipRemote:FireServer(1)
-                task.wait(0.1)
-
-                local chargeRemote = ReplicatedStorage
-                    .Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]
-                chargeRemote:InvokeServer(workspace:GetServerTimeNow())
-                task.wait(0.5)
-
-                local timestamp = workspace:GetServerTimeNow()
-                RodShake:Play()
-                rodRemote:InvokeServer(timestamp)
-
-                local baseX, baseY = -0.7499996423721313, 1
-                local x, y
-                if FuncAutoFishV2.perfectCastV2 then
-                    x = baseX + (math.random(-500, 500) / 10000000)
-                    y = baseY + (math.random(-500, 500) / 10000000)
-                else
-                    x = math.random(-1000, 1000) / 1000
-                    y = math.random(0, 1000) / 1000
-                end
-
-                RodIdle:Play()
-                miniGameRemote:InvokeServer(x, y)
-
-                task.wait(customDelayV2)
-                FuncAutoFishV2.fishingActiveV2 = false
-            end)
-        end
-    end)
-end
-
-function StopAutoFishV2()
-    FuncAutoFishV2.autofishV2 = false
-    FuncAutoFishV2.fishingActiveV2 = false
-    FuncAutoFishV2.delayInitializedV2 = false
-    RodIdle:Stop()
-    RodShake:Stop()
-    RodReel:Stop()
-end
 
 AutoFish:Input({
 	Title = "Bypass Delay",
-	Desc = "Use 1 for rod above a Ares",
-	Placeholder = "Example: 1",
+	Desc = "Optional. If not set, system uses default rod bypass.",
+	Placeholder = "Example: 1.5",
 	Value = nil,
 	Callback = function(value)
 		local number = tonumber(value)
 		if number then
-		  BypassDelay = number
-			NotifySuccess("Bypass Delay", "Bypass Delay set to " .. number)
+			BypassDelay = number
+			NotifySuccess("Bypass Delay", "Bypass Delay manually set to " .. number)
 		else
-		  NotifyError("Invalid Input", "Failed to convert input to number.")
+			NotifyError("Invalid Input", "Failed to convert input to number.")
 		end
 	end,
 })
@@ -698,11 +509,10 @@ local FishThres = AutoFish:Input({
 	Callback = function(value)
 		local number = tonumber(value)
 		if number then
-		  obtainedLimit = number
-		  obtainedLimitV2 = number
+			obtainedLimit = number
 			NotifySuccess("Threshold Set", "Fish threshold set to " .. number)
 		else
-		  NotifyError("Invalid Input", "Failed to convert input to number.")
+			NotifyError("Invalid Input", "Failed to convert input to number.")
 		end
 	end,
 })
@@ -710,25 +520,14 @@ local FishThres = AutoFish:Input({
 myConfig:Register("FishThreshold", FishThres)
 
 AutoFish:Toggle({
-	Title = "Auto Fish V2",
+	Title = "Auto Fish",
 	Callback = function(value)
 		if value then
-			StartAutoFishV2()
+			StartAutoFish()
 		else
-			StopAutoFishV2()
+			StopAutoFish()
 		end
 	end
-})
-
-AutoFish:Toggle({
-    Title = "Auto Fish (Custom Delay)",
-    Callback = function(value)
-        if value then
-            StartAutoFish()
-        else
-            StopAutoFish()
-        end
-    end
 })
 
 
@@ -1479,7 +1278,11 @@ local islandCodes = {
     ["08"] = "Sisyphus Statue",
     ["09"] = "Fisherman Island",
     ["10"] = "Esoteric Depths",
-    ["11"] = "Kohana"
+    ["11"] = "Kohana",
+    ["12"] = "Underground Cellar",
+    ["13"] = "Ancient Jungle",
+    ["14"] = "Secret Farm Ancient",
+    ["15"] = "The Temple (Unlock First)"
 }
 
 local farmLocations = {
@@ -1537,6 +1340,27 @@ local farmLocations = {
     	CFrame.new(-821.466125, 18.0640106, 442.570953, 0.502961993, 3.55151641e-08, 0.864308536, -2.61714685e-08, 1, -2.58610324e-08, -0.864308536, -9.61310764e-09, 0.502961993),
     	CFrame.new(-656.069275, 17.2500572, 450.77124, 0.899714053, -3.28262595e-09, -0.436479777, -5.17725418e-09, 1, -1.81925373e-08, 0.436479777, 1.86278477e-08, 0.899714053),
     	CFrame.new(-584.202759, 17.2500572, 459.276672, 0.0987685546, 5.48308599e-09, 0.995110452, -6.92575881e-08, 1, 1.36405531e-09, -0.995110452, -6.90536694e-08, 0.0987685546),
+    },
+    ["Underground Cellar"] = {
+    	CFrame.new(2159.65723, -91.198143, -730.99707, -0.392579645, -1.64555736e-09, 0.919718027, 4.08579943e-08, 1, 1.92293435e-08, -0.919718027, 4.51268818e-08, -0.392579645),
+    	CFrame.new(2114.22144, -91.1976471, -732.656738, -0.543168366, -3.4070105e-08, -0.839623809, 2.10003783e-08, 1, -5.41633582e-08, 0.839623809, -4.70522394e-08, -0.543168366),
+    	CFrame.new(2134.35767, -91.1985855, -698.182983, 0.989448071, -1.28799131e-08, -0.144888103, 2.66212989e-08, 1, 9.29025887e-08, 0.144888103, -9.57793915e-08, 0.989448071),
+    },
+    ["Ancient Jungle"] = {
+    	CFrame.new(1515.67676, 25.5616989, -306.595856, 0.763029754, -8.87780942e-08, 0.646363378, 5.24343307e-08, 1, 7.5451581e-08, -0.646363378, -2.36801707e-08, 0.763029754),
+    	CFrame.new(1489.29553, 6.23855162, -342.620209, -0.831362545, 6.32348289e-08, -0.555730462, 7.59748353e-09, 1, 1.02421176e-07, 0.555730462, 8.09269736e-08, -0.831362545),
+    	CFrame.new(1467.59143, 7.2090292, -324.716827, -0.086521171, 2.06461745e-08, -0.996250033, -4.92800183e-08, 1, 2.50037022e-08, 0.996250033, 5.12585707e-08, -0.086521171),
+    },
+    ["Secret Farm Ancient"] = {
+    	CFrame.new(2110.91431, -58.1463356, -732.848816, 0.0894816518, -9.7328666e-08, -0.995988488, 5.18647809e-08, 1, -9.30610398e-08, 0.995988488, -4.3329468e-08, 0.0894816518)
+    },
+    ["The Temple (Unlock First)"] = {
+    	CFrame.new(1479.11865, -22.1250019, -662.669373, 0.161120579, -2.03902815e-08, -0.986934721, -3.03227985e-08, 1, -2.56105164e-08, 0.986934721, 3.40530022e-08, 0.161120579),
+    	CFrame.new(1465.41211, -22.1250019, -670.940002, -0.21706377, -2.10148947e-08, 0.976157427, 3.29077707e-08, 1, 2.88457365e-08, -0.976157427, 3.83845311e-08, -0.21706377),
+    	CFrame.new(1496.21802, -32.1248207, -718.443481, 0.6035254, -8.12091461e-09, 0.797343791, -4.36373142e-08, 1, 4.32149143e-08, -0.797343791, -6.08752373e-08, 0.6035254),
+    	CFrame.new(1470.30334, -12.2246475, -587.052612, -0.101084575, -9.68974163e-08, 0.994877815, -1.47451953e-08, 1, 9.5898109e-08, -0.994877815, -4.97584818e-09, -0.101084575),
+    	CFrame.new(1451.19983, -22.1250019, -621.852478, -0.986927867, 8.68970318e-09, -0.161162451, 9.61592317e-09, 1, -4.96716179e-09, 0.161162451, -6.4519563e-09, -0.986927867),
+    	CFrame.new(1499.44788, -22.1250019, -628.441711, -0.985374331, 7.20484294e-08, -0.170403719, 8.45688035e-08, 1, -6.62162876e-08, 0.170403719, -7.9658669e-08, -0.985374331)
     }
 }
 
@@ -1836,7 +1660,10 @@ local islandCoords = {
 	["10"] = { name = "Isoteric Island", position = Vector3.new(1987, 4, 1400) },
 	["11"] = { name = "Treasure Hall", position = Vector3.new(-3600.72632, -276.06427, -1640.79663, -0.696130812, -6.0491181e-09, 0.717914939, -1.09490363e-08, 1, -2.19084972e-09, -0.717914939, -9.38559541e-09, -0.696130812) },
 	["12"] = { name = "Lost Shore", position = Vector3.new(-3663, 38, -989 ) },
-	["13"] = { name = "Sishypus Statue", position = Vector3.new(-3722.92139, -101.130035, -955.649902, 0.777723014, -1.41385739e-08, 0.628607094, -2.57670365e-08, 1, 5.43713092e-08, -0.628607094, -5.84831632e-08, 0.777723014) }
+	["13"] = { name = "Sishypus Statue", position = Vector3.new(-3722.92139, -101.130035, -955.649902, 0.777723014, -1.41385739e-08, 0.628607094, -2.57670365e-08, 1, 5.43713092e-08, -0.628607094, -5.84831632e-08, 0.777723014) },
+	["14"] = { name = "Ancient Jungle", position = Vector3.new(1478, 131, -613) },
+	["15"] = { name = "The Temple", position = Vector3.new(1477, -22, -631) },
+	["16"] = { name = "Underground Cellar", position = Vector3.new(2133, -91, -674) }
 }
 
 local islandNames = {}
