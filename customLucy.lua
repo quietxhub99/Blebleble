@@ -216,7 +216,7 @@ local WeatherTab = Window:Tab({
 	
 })
 
-local TabSkins = AllMenu:Tab({
+local TabSkins = Window:Tab({
     Title = "Skins",
     Icon = "sparkles"
 })
