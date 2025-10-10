@@ -1001,28 +1001,6 @@ Trade:Toggle({
     end
 })
 
-RFAwaitTradeResponse.OnClientInvoke = function(fromPlayer, timeNow)
-    if TradeFunction.autoAcceptTrade then
-        return true
-    else
-        return nil
-    end
-end
-
-Trade:Toggle({
-    Title = "Auto Accept Trade",
-    Desc = "Automatically accept trade requests",
-    Value = false,
-    Callback = function(state)
-        TradeFunction.autoAcceptTrade = state
-        if state then
-            NotifySuccess("Auto Trade", "Enabled")
-        else
-            NotifyWarning("Auto Trade", "Disabled")
-        end
-    end
-})
-
 local RFAwaitTradeResponse = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/AwaitTradeResponse"]
 
 local autoAcceptTrade = false
