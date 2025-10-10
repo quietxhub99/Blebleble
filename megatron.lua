@@ -2453,15 +2453,15 @@ FishNotif:Toggle({
 local FishCategories = {
 	["Secret"] = {
 		"Blob Shark","Great Christmas Whale","Frostborn Shark","Great Whale","Worm Fish","Robot Kraken",
-		"Giant Squid","Ghost Worm Fish","Ghost Shark","Queen Crab","Orca","Crystal Crab","Monster Shark","Eerie Shark", "Scare", "Thin Armor Shark", "Orca", "Lochness Monster", "Megalodon", "Phanter Eel"
+		"Giant Squid","Ghost Worm Fish","Ghost Shark","Queen Crab","Orca","Crystal Crab","Monster Shark","Eerie Shark", "Scare", "Thin Armor Shark", "Orca", "Lochness Monster", "Megalodon", "Phanter Eel", "Mosasaur Shark", "King Jelly", "Bone Whale", "Elshark Gran Maja"
 	},
 	["Mythic"] = {
 		"Gingerbread Shark","Loving Shark","King Crab","Blob Fish","Hermit Crab","Luminous Fish",
 		"Plasma Shark","Abyss Seahorse","Blueflame Ray","Hammerhead Shark","Hawks Turtle",
-		"Manta Ray","Loggerhead Turtle","Prismy Seahorse","Gingerbread Turtle", "Armor Catfish", "Armor Thin Shark", "Strippled Seahorse","Thresher Shark","Dotted Stingray", "Sharp One", "Hybodius Shark", "Magma Shark", "Crocodile", "Ancient Relic Crocodile", "Mammoth Appafish"
+		"Manta Ray","Loggerhead Turtle","Prismy Seahorse","Gingerbread Turtle", "Armor Catfish", "Armor Thin Shark", "Strippled Seahorse","Thresher Shark","Dotted Stingray", "Sharp One", "Hybodius Shark", "Crocodile", "Ancient Relic Crocodile", "Mammoth Appafish"
 	},
 	["Legendary"] = {
-		"Yellowfin Tuna","Lake Sturgeon","Lined Cardinal Fish","Saw Fish","Slurpfish Chromis","Chrome Tuna","Lobster", "Bumblebee Grouper","Lavafin Tuna","Blue Lobster","Greenbee Grouper","Starjam Tang","Magic Tang", "Enchanted Angelfish","Axolotl","Deep Sea Crab"
+		"Yellowfin Tuna","Lake Sturgeon","Lined Cardinal Fish","Saw Fish","Slurpfish Chromis","Chrome Tuna","Lobster", "Bumblebee Grouper","Lavafin Tuna","Blue Lobster","Greenbee Grouper","Starjam Tang","Magic Tang", "Enchanted Angelfish","Axolotl","Deep Sea Crab", "Temple Spokes Tuna", "Manoai Statue Fish"
 	},
 }
 
