@@ -1845,51 +1845,29 @@ myConfig:Register("JumpPower", Jp)
 ----- =======[ UTILITY TAB ]
 -------------------------------------------
 
-local function teleportToTempleLever(index)
-    local jungle = workspace:FindFirstChild("JUNGLE INTERACTIONS")
-    if not jungle then
-        warn("❌ Tidak ditemukan folder 'JUNGLE INTERACTIONS' di workspace.")
-        return
-    end
+local REPlaceLeverItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlaceLeverItem"]
 
-    local lever
-    if index == 1 then
-        lever = jungle:GetChildren()[5]
-    elseif index == 2 then
-        lever = jungle:FindFirstChild("TempleLever")
-    elseif index == 3 then
-        lever = jungle:GetChildren()[4]
-    elseif index == 4 then
-        lever = jungle:GetChildren()[6]
-    end
+Utils:Button({
+    Title = "Unlock The Temple",
+    Desc = "Still need Artifacts!",
+    Justify = "Center",
+    Callback = function()
+        task.spawn(function()
+            local Artifacts = {
+                "Hourglass Diamond Artifact",
+                "Crescent Artifact",
+                "Arrow Artifact",
+                "Diamond Artifact"
+            }
 
-    if lever and lever:IsA("Model") and lever:FindFirstChild("PrimaryPart") then
-        LocalPlayer.Character:MoveTo(lever.PrimaryPart.Position)
-        NotitySuccess("Temple Lever", ("Teleported to Temple Lever %d"):format(index))
-    elseif lever and lever:IsA("Model") then
-        lever.PrimaryPart = lever:FindFirstChildWhichIsA("BasePart")
-        if lever.PrimaryPart then
-            LocalPlayer.Character:MoveTo(lever.PrimaryPart.Position)
-            NotifySuccess("Temple Lever", ("Teleported to Temple Lever %d"):format(index))
-        else
-            NotifyWarning("Temple Lever", "Temple Lever Gone !.")
-        end
-    else
-        NotifyError("Temple Lever", ("Temple Lever %d Not Found."):format(index))
-    end
-end
+            for _, artifact in ipairs(Artifacts) do
+                REPlaceLeverItem:FireServer(artifact)
+                NotifyInfo("Temple Unlock", "Placing: " .. artifact)
+                task.wait(2.1)
+            end
 
-Utils:Dropdown({
-    Title = "Temple Lever Post",
-    Values = { "Temple Lever 1", "Temple Lever 2", "Temple Lever 3", "Temple Lever 4" },
-    Value = "Temple Lever 1",
-    Callback = function(option)
-        local index = tonumber(option:match("%d+"))
-        if index then
-            teleportToTempleLever(index)
-        else
-            warn("❌ Pilihan dropdown tidak valid.")
-        end
+            NotifySuccess("Temple Unlock", "All Artifact placed")
+        end)
     end
 })
 
