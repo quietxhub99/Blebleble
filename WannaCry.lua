@@ -28,7 +28,8 @@ local Notifs = {
 	FishBlockNotif = true,
 	DelayBlockNotif = true,
 	AFKBN = true,
-	APIBN = true
+	APIBN = true,
+	ACBlock = true
 }
 
 local rodRemote = net:WaitForChild("RF/ChargeFishingRod")
@@ -1464,6 +1465,41 @@ Trade:Toggle({
             NotifyWarning("Trade", "Trade Mode Disabled.")
         end
     end
+})
+
+local RFAwaitTradeResponse = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/AwaitTradeResponse"]
+
+local autoAcceptTrade = false
+local TRADE_DELAY = 3
+
+RFAwaitTradeResponse.OnClientInvoke = function(fromPlayer, timeNow)
+	if autoAcceptTrade then
+
+		task.wait(TRADE_DELAY)
+
+		local newTime = workspace:GetServerTimeNow() + TRADE_DELAY
+
+		return true
+	else
+		return nil
+	end
+end
+
+Trade:Toggle({
+	Title = "Auto Accept Trade",
+	Value = false,
+	Callback = function(state)
+		if Notifs.ACBlock then
+			Notifs.ACBlock = false
+			return
+		end
+		autoAcceptTrade = state
+		if state then
+			NotifySuccess("Trade", "Auto Accept Trade Enabled")
+		else
+			NotifyWarning("Trade", "Auto Accept Trade Disabled")
+		end
+	end
 })
 
 -------------------------------------------

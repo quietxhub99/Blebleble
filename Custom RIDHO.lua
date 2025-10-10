@@ -315,6 +315,7 @@ local RodDelays = {
 	["Angler Rod"] = {custom = {1.0, 1.2}, bypass = 1.1},
 	["Ghostfinn Rod"] = {custom = {1.0, 1.2}, bypass = 0.57},
 	["Bamboo Rod"] = {custom = {1.0, 1.1}, bypass = 0.5},
+	["Element Rod"] = {custom = {1.0, 1.2}, bypass = 0.65},
   
   ["Fluorescent Rod"] = {custom = {1.4, 2.0}, bypass = 1.55},
 	["Astral Rod"] = {custom = {1.4, 2.0}, bypass = 1.5},
@@ -1007,28 +1008,36 @@ Trade:Toggle({
     end
 })
 
+local RFAwaitTradeResponse = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/AwaitTradeResponse"]
+
+local autoAcceptTrade = false
+local TRADE_DELAY = 3
+
 RFAwaitTradeResponse.OnClientInvoke = function(fromPlayer, timeNow)
-    if TradeFunction.autoAcceptTrade then
-        return true
-    else
-        return nil
-    end
+	if autoAcceptTrade then
+
+		task.wait(TRADE_DELAY)
+
+		local newTime = workspace:GetServerTimeNow() + TRADE_DELAY
+
+		return true
+	else
+		return nil
+	end
 end
 
 Trade:Toggle({
-    Title = "Auto Accept Trade",
-    Desc = "Automatically accept trade requests",
-    Value = false,
-    Callback = function(state)
-        TradeFunction.autoAcceptTrade = state
-        if state then
-            NotifySuccess("Auto Trade", "Enabled")
-        else
-            NotifyWarning("Auto Trade", "Disabled")
-        end
-    end
+	Title = "Auto Accept Trade",
+	Value = false,
+	Callback = function(state)
+		autoAcceptTrade = state
+		if state then
+			NotifySuccess("Trade", "Auto Accept Trade Enabled")
+		else
+			NotifyWarning("Trade", "Auto Accept Trade Disabled")
+		end
+	end
 })
-
 
 -------------------------------------------
 ----- =======[ AUTO FARM TAB ]

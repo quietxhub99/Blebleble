@@ -256,53 +256,6 @@ DevTab:Paragraph({
     }
 })
 
-DevTab:Paragraph({
-	Title = "Feature Guide",
-	Color = "Grey",
-	Desc = [[
-====| Auto Enchant Rod |====
-
-For the Enchant Rod feature, please read this first.
-Before enchanting, you are required to have an Enchant Stone, then put the Enchant Stones in the 5th slot, then wait until the Enchant is successful. The Enchant Rod feature can be used anywhere.
-
-========================•=========================
-
-====| Rod Modifier |====
-
-For the Rod Modifier feature, you can only change each rod once. If you want to change another rod, then the previous rod will be reset.
-
-And for this feature, it says it can only increase 1.5x from your default rod stats.
-
-Please reset Character after using to work perfectly
-
-========================•=========================
-
-====| Auto Farm |====
-
-Before using it, I will teach you how to set up Auto Farm.
-
-Please select the island you want to visit.Please select the island you want to farm.
-
-Available Island Codes:
-01 = Crater Islands
-02 = Tropical Grove
-03 = Vulcano
-04 = Coral Reefs
-05 = Winter Fest
-06 = Weather Machine
-07 = Treasure Room
-08 = Deap Sea
-
-Auto Farm Event (Opsional) :
-Enable this if you want to farm during events as well, and leave it on if you don't need it!
-
-Fish Threshold :
-What is "Fish Threshold"? Detects the number of fish you have caught, if it has reached the number you have determined, it will sell all the fish that have been caught, except above legendary.
-
-========================•=========================
-]]
-})
-
 -------------------------------------------
 ----- =======[ AUTO FISH TAB ]
 -------------------------------------------
@@ -320,6 +273,7 @@ local RodDelays = {
 	["Angler Rod"] = {custom = {1.0, 1.2}, bypass = 1.1},
 	["Ghostfinn Rod"] = {custom = {1.0, 1.2}, bypass = 0.57},
 	["Bamboo Rod"] = {custom = {1.0, 1.1}, bypass = 0.5},
+	["Element Rod"] = {custom = {1.0, 1.2}, bypass = 0.65},
   
   ["Fluorescent Rod"] = {custom = {1.4, 2.0}, bypass = 1.55},
 	["Astral Rod"] = {custom = {1.4, 2.0}, bypass = 1.5},
@@ -1032,6 +986,37 @@ Trade:Toggle({
             NotifyWarning("Auto Trade", "Disabled")
         end
     end
+})
+
+local RFAwaitTradeResponse = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/AwaitTradeResponse"]
+
+local autoAcceptTrade = false
+local TRADE_DELAY = 3
+
+RFAwaitTradeResponse.OnClientInvoke = function(fromPlayer, timeNow)
+	if autoAcceptTrade then
+
+		task.wait(TRADE_DELAY)
+
+		local newTime = workspace:GetServerTimeNow() + TRADE_DELAY
+
+		return true
+	else
+		return nil
+	end
+end
+
+Trade:Toggle({
+	Title = "Auto Accept Trade",
+	Value = false,
+	Callback = function(state)
+		autoAcceptTrade = state
+		if state then
+			NotifySuccess("Trade", "Auto Accept Trade Enabled")
+		else
+			NotifyWarning("Trade", "Auto Accept Trade Disabled")
+		end
+	end
 })
 
 
