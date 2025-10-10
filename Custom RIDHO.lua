@@ -479,6 +479,8 @@ function StopAutoFish()
 	FuncAutoFish.autofish = false
 	FuncAutoFish.fishingActive = false
 	FuncAutoFish.delayInitialized = false
+	RodIdle:Stop()
+	RodShake:Stop()
 end
 
 
@@ -524,6 +526,34 @@ AutoFish:Toggle({
 			StopAutoFish()
 		end
 	end
+})
+
+_G.ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+_G.REFishingStopped = _G.ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishingStopped"]
+_G.RFCancelFishingInputs = _G.ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/CancelFishingInputs"]
+
+_G.StopFishing = function()
+    local success, err = pcall(function()
+        _G.RFCancelFishingInputs:InvokeServer()
+        firesignal(_G.REFishingStopped.OnClientEvent)
+    end)
+
+    if success then
+        NotifySuccess("Stop Fishing", "Fishing stopped")
+    else
+        warn("error: ", err)
+    end
+end
+
+AutoFish:Button({
+    Title = "Stop Fishing",
+    Locked = false,
+    Callback = function()
+        _G.StopFishing()
+        RodIdle:Stop()
+        RodIdle:Stop()
+    end
 })
 
 
@@ -1616,6 +1646,34 @@ myConfig:Register("WeatherDropdown", WeatherDropdown)
 -------------------------------------------
 ----- =======[ UTILITY TAB ]
 -------------------------------------------
+
+_G.ArtifactSpots = {
+    ["Spot 1"] = CFrame.new(1404.16931, 6.38866091, 118.118126, -0.964853525, 8.69606822e-08, 0.262788326, 9.85441346e-08, 1, 3.08992689e-08, -0.262788326, 5.5709517e-08, -0.964853525),
+    ["Spot 2"] = CFrame.new(883.969788, 6.62499952, -338.560059, -0.325799465, 2.72482961e-08, 0.945438921, 3.40634649e-08, 1, -1.70824759e-08, -0.945438921, 2.6639464e-08, -0.325799465),
+    ["Spot 3"] = CFrame.new(1834.76819, 6.62499952, -296.731476, 0.413336992, -7.92166972e-08, -0.910578132, 3.06007166e-08, 1, -7.31055181e-08, 0.910578132, 2.35287234e-09, 0.413336992),
+    ["Spot 4"] = CFrame.new(1483.25586, 6.62499952, -848.38031, -0.986296117, 2.72397838e-08, 0.164984599, 3.60663037e-08, 1, 5.05033348e-08, -0.164984599, 5.57616318e-08, -0.986296117)
+}
+
+_G.TeleportToArtifactSpot = function(spotName)
+    local plr = game.Players.LocalPlayer
+    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+
+    if hrp and _G.ArtifactSpots[spotName] then
+        hrp.CFrame = _G.ArtifactSpots[spotName]
+        NotifySuccess("Artifact Spot", "Teleported to: " .. spotName)
+    else
+        warn("[Artifact Spot] Teleport failed — HRP or spot missing!")
+    end
+end
+
+Utils:Dropdown({
+    Title = "Artifact Spots",
+    Values = { "Spot 1", "Spot 2", "Spot 3", "Spot 4" },
+    Value = "Spot 1",
+    Callback = function(selected)
+        _G.TeleportToArtifactSpot(selected)
+    end
+})
 
 local REPlaceLeverItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlaceLeverItem"]
 
