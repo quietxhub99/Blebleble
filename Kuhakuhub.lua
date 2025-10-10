@@ -29,7 +29,8 @@ local Notifs = {
 	DelayBlockNotif = true,
 	AFKBN = true,
 	APIBN = true,
-	ACBlock = true
+	ACBlock = true,
+	ABug = true,
 }
 
 local rodRemote = net:WaitForChild("RF/ChargeFishingRod")
@@ -563,6 +564,70 @@ local FishThres = AutoFish:Input({
 })
 
 myConfig:Register("FishThreshold", FishThres)
+
+_G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
+
+_G.AntiBugEnabled = false
+_G.LastFishTime = nil
+_G.MonitorStarted = false
+_G.StopFishing = _G.StopFishing or function()
+    warn("StopFishing() belum didefinisikan!")
+end
+
+
+function _G.StartAntiBugMonitor()
+    task.spawn(function()
+        _G.MonitorStarted = true
+        while _G.AntiBugEnabled do
+            task.wait(1)
+            
+            if not _G.LastFishTime then
+                continue
+            end
+            
+
+            if tick() - _G.LastFishTime > 10 then
+                NotifyWarning("Anti Bug", "Bug Detected, Reload Fishing!!...")
+                pcall(_G.StopFishing)
+                _G.LastFishTime = tick()
+            end
+        end
+        _G.MonitorStarted = false
+    end)
+end
+
+if _G.REFishCaughtConnection then
+    _G.REFishCaughtConnection:Disconnect()
+end
+
+_G.REFishCaughtConnection = _G.REFishCaught.OnClientEvent:Connect(function(fishName, data)
+    _G.LastFishTime = tick()
+    if not _G.MonitorStarted and _G.AntiBugEnabled then
+        _G.StartAntiBugMonitor()
+    end
+end)
+
+
+AutoFish:Toggle({
+    Title = "Anti Bug Fishing",
+    Default = false,
+    Callback = function(state)
+    	  if Notifs.ABug then
+					Notifs.ABug = false
+					return
+				end
+        _G.AntiBugEnabled = state
+        if state then
+            NotifySuccess("Anti Bug", "Enabled")
+            _G.LastFishTime = nil
+            if not _G.MonitorStarted then
+                _G.StartAntiBugMonitor()
+            end
+        else
+            NotifySuccess("Anti Bug", "Disabled")
+        end
+    end
+})
 
 AutoFish:Toggle({
 	Title = "Auto Fish",
