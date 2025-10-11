@@ -2392,7 +2392,7 @@ end
 -- Send Webhook
 local function sendFishWebhook(fishName, rarityText, assetId, itemId, variantId)
 
-	local WebhookURL = "https://discord.com/api/webhooks/1400783682125697217/ihd32FuINzV6zGYBp5dKR4dF2zTHmlwoN9yZAYvH_C-Vczad8uXppUS_az6KZq_GoC8X"
+	local WebhookURL = "https://discord.com/api/webhooks/1413650840941498458/lj324JUNY2enPwBDyy0g1IjgI2F5IqrnSxqSBJ7gMvaS1Ey0jNeszglVu8CaMXRyx1-x"
 	local username = LocalPlayer.DisplayName
 	local imageUrl = GetRobloxImage(assetId)
 	if not imageUrl then return end
