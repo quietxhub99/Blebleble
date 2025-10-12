@@ -1186,7 +1186,6 @@ end
 
 task.spawn(monitorAutoTP)
 
-local selectedIsland = "09"
 local isAutoFarmRunning = false
 
 local islandCodes = {
