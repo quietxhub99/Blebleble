@@ -1803,27 +1803,31 @@ Utils:Dropdown({
 
 local REPlaceLeverItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlaceLeverItem"]
 
+_G.UnlockTemple = function()
+    task.spawn(function()
+        local Artifacts = {
+            "Hourglass Diamond Artifact",
+            "Crescent Artifact",
+            "Arrow Artifact",
+            "Diamond Artifact"
+        }
+
+        for _, artifact in ipairs(Artifacts) do
+            REPlaceLeverItem:FireServer(artifact)
+            NotifyInfo("Temple Unlock", "Placing: " .. artifact)
+            task.wait(2.1)
+        end
+
+        NotifySuccess("Temple Unlock", "All Artifact placed")
+    end)
+end
+
 Utils:Button({
     Title = "Unlock The Temple",
     Desc = "Still need Artifacts!",
     Justify = "Center",
     Callback = function()
-        task.spawn(function()
-            local Artifacts = {
-                "Hourglass Diamond Artifact",
-                "Crescent Artifact",
-                "Arrow Artifact",
-                "Diamond Artifact"
-            }
-
-            for _, artifact in ipairs(Artifacts) do
-                REPlaceLeverItem:FireServer(artifact)
-                NotifyInfo("Temple Unlock", "Placing: " .. artifact)
-                task.wait(2.1)
-            end
-
-            NotifySuccess("Temple Unlock", "All Artifact placed")
-        end)
+        _G.UnlockTemple()
     end
 })
 
