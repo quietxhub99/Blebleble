@@ -288,6 +288,11 @@ local AutoFarmTab = AllMenu:Tab({
 	Icon = "leaf"
 })
 
+local AutoFarmArt = AllMenu:Tab({
+	Title = "Auto Farm Artifact",
+	Icon = "flask-round"
+})
+
 local Trade = AllMenu:Tab({
 	Title = "Trade",
 	Icon = "handshake"
@@ -1459,6 +1464,169 @@ AutoFarmTab:Dropdown({
 	end
 })
 
+-------------------------------------------
+----- =======[ ARTIFACT TAB ]
+-------------------------------------------
+
+local REPlaceLeverItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlaceLeverItem"]
+
+_G.UnlockTemple = function()
+    task.spawn(function()
+        local Artifacts = {
+            "Hourglass Diamond Artifact",
+            "Crescent Artifact",
+            "Arrow Artifact",
+            "Diamond Artifact"
+        }
+
+        for _, artifact in ipairs(Artifacts) do
+            REPlaceLeverItem:FireServer(artifact)
+            NotifyInfo("Temple Unlock", "Placing: " .. artifact)
+            task.wait(2.1)
+        end
+
+        NotifySuccess("Temple Unlock", "All Artifacts placed successfully!")
+    end)
+end
+
+
+_G.ArtifactSpots = {
+    ["Spot 1"] = CFrame.new(1404.16931, 6.38866091, 118.118126, -0.964853525, 8.69606822e-08, 0.262788326, 9.85441346e-08, 1, 3.08992689e-08, -0.262788326, 5.5709517e-08, -0.964853525),
+    ["Spot 2"] = CFrame.new(883.969788, 6.62499952, -338.560059, -0.325799465, 2.72482961e-08, 0.945438921, 3.40634649e-08, 1, -1.70824759e-08, -0.945438921, 2.6639464e-08, -0.325799465),
+    ["Spot 3"] = CFrame.new(1834.76819, 6.62499952, -296.731476, 0.413336992, -7.92166972e-08, -0.910578132, 3.06007166e-08, 1, -7.31055181e-08, 0.910578132, 2.35287234e-09, 0.413336992),
+    ["Spot 4"] = CFrame.new(1483.25586, 6.62499952, -848.38031, -0.986296117, 2.72397838e-08, 0.164984599, 3.60663037e-08, 1, 5.05033348e-08, -0.164984599, 5.57616318e-08, -0.986296117)
+}
+
+local REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
+
+local saveFile = "ArtifactProgress.json"
+
+if isfile(saveFile) then
+    local success, data = pcall(function()
+        return game:GetService("HttpService"):JSONDecode(readfile(saveFile))
+    end)
+    if success and type(data) == "table" then
+        _G.ArtifactCollected = data.ArtifactCollected or 0
+        _G.CurrentSpot = data.CurrentSpot or 1
+    else
+        _G.ArtifactCollected = 0
+        _G.CurrentSpot = 1
+    end
+else
+    _G.ArtifactCollected = 0
+    _G.CurrentSpot = 1
+end
+
+_G.ArtifactFarmEnabled = false
+
+local function saveProgress()
+    local data = {
+        ArtifactCollected = _G.ArtifactCollected,
+        CurrentSpot = _G.CurrentSpot
+    }
+    writefile(saveFile, game:GetService("HttpService"):JSONEncode(data))
+end
+
+_G.StartArtifactFarm = function()
+    if _G.ArtifactFarmEnabled then return end
+    _G.ArtifactFarmEnabled = true
+
+    updateParagraph("Auto Farm Artifact", ("Resuming from Spot %d..."):format(_G.CurrentSpot))
+
+    local Player = game.Players.LocalPlayer
+    task.wait(1)
+    Player.Character:PivotTo(_G.ArtifactSpots["Spot " .. tostring(_G.CurrentSpot)])
+    task.wait(1)
+
+    StartAutoFish()
+    _G.AutoFishStarted = true
+
+    _G.ArtifactConnection = REFishCaught.OnClientEvent:Connect(function(fishName, data)
+        if string.find(fishName, "Artifact") then
+            _G.ArtifactCollected += 1
+            saveProgress()
+
+            updateParagraph(
+                "Auto Farm Artifact",
+                ("Artifact Found : %s\nTotal: %d/4"):format(fishName, _G.ArtifactCollected)
+            )
+
+            if _G.ArtifactCollected < 4 then
+                _G.CurrentSpot += 1
+                saveProgress()
+                local spotName = "Spot " .. tostring(_G.CurrentSpot)
+                if _G.ArtifactSpots[spotName] then
+                    task.wait(2)
+                    Player.Character:PivotTo(_G.ArtifactSpots[spotName])
+                    updateParagraph("Auto Farm Artifact",
+                        ("Artifact Found : %s\nTotal : %d/4\n\nTeleporting to %s..."):format(
+                            fishName,
+                            _G.ArtifactCollected,
+                            spotName
+                        )
+                    )
+                    task.wait(1)
+                end
+            else
+                updateParagraph("Auto Farm Artifact", "All Artifacts collected! Unlocking Temple...")
+                StopAutoFish()
+                task.wait(1.5)
+                if typeof(_G.UnlockTemple) == "function" then
+                    _G.UnlockTemple()
+                end
+                _G.StopArtifactFarm()
+                delfile(saveFile)
+            end
+        end
+    end)
+end
+
+_G.StopArtifactFarm = function()
+    StopAutoFish()
+    _G.ArtifactFarmEnabled = false
+    _G.AutoFishStarted = false
+    if _G.ArtifactConnection then
+        _G.ArtifactConnection:Disconnect()
+        _G.ArtifactConnection = nil
+    end
+    saveProgress()
+    updateParagraph("Auto Farm Artifact", "Auto Farm Artifact stopped. Progress saved.")
+end
+
+function updateParagraph(title, desc)
+    if _G.ArtifactParagraph then
+        _G.ArtifactParagraph:SetDesc(desc)
+    end
+end
+
+_G.ArtifactParagraph = AutoFarmArt:Paragraph({
+    Title = "Auto Farm Artifact",
+    Desc = "Waiting for activation...",
+    Color = "Green",
+})
+
+AutoFarmArt:Toggle({
+    Title = "Auto Farm Artifact",
+    Desc = "Automatically collects 4 Artifacts and unlocks The Temple.",
+    Default = false,
+    Callback = function(state)
+        if state then
+            _G.StartArtifactFarm()
+        else
+            _G.StopArtifactFarm()
+        end
+    end
+})
+
+AutoFarmArt:Button({
+    Title = "Unlock The Temple",
+    Desc = "Still need Artifacts!",
+    Justify = "Center",
+    Callback = function()
+        _G.UnlockTemple()
+    end
+})
+
 
 -------------------------------------------
 ----- =======[ MASS TRADE TAB ]
@@ -2121,64 +2289,6 @@ DStones:Button({
 -------------------------------------------
 ----- =======[ UTILITY TAB ]
 -------------------------------------------
-
-_G.ArtifactSpots = {
-    ["Spot 1"] = CFrame.new(1404.16931, 6.38866091, 118.118126, -0.964853525, 8.69606822e-08, 0.262788326, 9.85441346e-08, 1, 3.08992689e-08, -0.262788326, 5.5709517e-08, -0.964853525),
-    ["Spot 2"] = CFrame.new(883.969788, 6.62499952, -338.560059, -0.325799465, 2.72482961e-08, 0.945438921, 3.40634649e-08, 1, -1.70824759e-08, -0.945438921, 2.6639464e-08, -0.325799465),
-    ["Spot 3"] = CFrame.new(1834.76819, 6.62499952, -296.731476, 0.413336992, -7.92166972e-08, -0.910578132, 3.06007166e-08, 1, -7.31055181e-08, 0.910578132, 2.35287234e-09, 0.413336992),
-    ["Spot 4"] = CFrame.new(1483.25586, 6.62499952, -848.38031, -0.986296117, 2.72397838e-08, 0.164984599, 3.60663037e-08, 1, 5.05033348e-08, -0.164984599, 5.57616318e-08, -0.986296117)
-}
-
-_G.TeleportToArtifactSpot = function(spotName)
-    local plr = game.Players.LocalPlayer
-    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-
-    if hrp and _G.ArtifactSpots[spotName] then
-        hrp.CFrame = _G.ArtifactSpots[spotName]
-        NotifySuccess("Artifact Spot", "Teleported to: " .. spotName)
-    else
-        warn("[Artifact Spot] Teleport failed — HRP or spot missing!")
-    end
-end
-
-Utils:Dropdown({
-    Title = "Artifact Spots",
-    Values = { "Spot 1", "Spot 2", "Spot 3", "Spot 4" },
-    Value = "Spot 1",
-    Callback = function(selected)
-        _G.TeleportToArtifactSpot(selected)
-    end
-})
-
-local REPlaceLeverItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlaceLeverItem"]
-
-_G.UnlockTemple = function()
-    task.spawn(function()
-        local Artifacts = {
-            "Hourglass Diamond Artifact",
-            "Crescent Artifact",
-            "Arrow Artifact",
-            "Diamond Artifact"
-        }
-
-        for _, artifact in ipairs(Artifacts) do
-            REPlaceLeverItem:FireServer(artifact)
-            NotifyInfo("Temple Unlock", "Placing: " .. artifact)
-            task.wait(2.1)
-        end
-
-        NotifySuccess("Temple Unlock", "All Artifact placed")
-    end)
-end
-
-Utils:Button({
-    Title = "Unlock The Temple",
-    Desc = "Still need Artifacts!",
-    Justify = "Center",
-    Callback = function()
-        _G.UnlockTemple()
-    end
-})
 
 local RFPurchaseMarketItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseMarketItem"]
 
