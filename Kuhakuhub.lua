@@ -224,6 +224,11 @@ local AutoFarmTab = AllMenu:Tab({
 	Icon = "leaf"
 })
 
+local AutoFarmArt = AllMenu:Tab({
+	Title = "Auto Farm Artifact",
+	Icon = "flask-round"
+})
+
 local Trade = AllMenu:Tab({
 	Title = "Trade",
 	Icon = "handshake"

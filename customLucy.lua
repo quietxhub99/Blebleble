@@ -205,6 +205,11 @@ local AutoFarmTab = Window:Tab({
 	Icon = "leaf"
 })
 
+local AutoFarmArt = Window:Tab({
+	Title = "Auto Farm Artifact",
+	Icon = "flask-round"
+})
+
 local Player = Window:Tab({
     Title = "Player",
     Icon = "users-round"
