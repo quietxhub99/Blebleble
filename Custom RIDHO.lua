@@ -1880,7 +1880,6 @@ local islandCoords = {
 	["15"] = { name = "The Temple", position = Vector3.new(1477, -22, -631) },
 	["16"] = { name = "Underground Cellar", position = Vector3.new(2133, -91, -674)}
 }
-}
 
 local islandNames = {}
 for _, data in pairs(islandCoords) do
@@ -2103,14 +2102,22 @@ SettingsTab:Toggle({
 })
 
 SettingsTab:Button({
-	Title = "Boost FPS (Maximize Performance)",
+	Title = "Boost FPS (Ultra Low Graphics)",
 	Callback = function()
 		for _, v in pairs(game:GetDescendants()) do
 			if v:IsA("BasePart") then
 				v.Material = Enum.Material.SmoothPlastic
 				v.Reflectance = 0
+				v.CastShadow = false
+				v.Transparency = v.Transparency > 0.5 and 1 or v.Transparency
 			elseif v:IsA("Decal") or v:IsA("Texture") then
 				v.Transparency = 1
+			elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Explosion") then
+				v.Enabled = false
+			elseif v:IsA("Beam") or v:IsA("SpotLight") or v:IsA("PointLight") or v:IsA("SurfaceLight") then
+				v.Enabled = false
+			elseif v:IsA("ShirtGraphic") or v:IsA("Shirt") or v:IsA("Pants") then
+				v:Destroy()
 			end
 		end
 
@@ -2120,11 +2127,55 @@ SettingsTab:Button({
 				effect.Enabled = false
 			end
 		end
-
 		Lighting.GlobalShadows = false
-		Lighting.FogEnd = 1e10
+		Lighting.FogEnd = 9e9
+		Lighting.Brightness = 1
+		Lighting.EnvironmentDiffuseScale = 0
+		Lighting.EnvironmentSpecularScale = 0
+		Lighting.ClockTime = 12
+		Lighting.Ambient = Color3.new(1, 1, 1)
+		Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
 
-		settings().Rendering.QualityLevel = "Level01"
+		local Terrain = workspace:FindFirstChildOfClass("Terrain")
+		if Terrain then
+			Terrain.WaterWaveSize = 0
+			Terrain.WaterWaveSpeed = 0
+			Terrain.WaterReflectance = 0
+			Terrain.WaterTransparency = 1
+			Terrain.Decoration = false
+		end
+
+		settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+		settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01
+		settings().Rendering.TextureQuality = Enum.TextureQuality.Low
+
+		game:GetService("UserSettings").GameSettings.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
+		game:GetService("UserSettings").GameSettings.Fullscreen = true
+
+		for _, s in pairs(workspace:GetDescendants()) do
+			if s:IsA("Sound") and s.Playing and s.Volume > 0.5 then
+				s.Volume = 0.1
+			end
+		end
+
+		if collectgarbage then
+			collectgarbage("collect")
+		end
+
+		local fullWhite = Instance.new("ScreenGui")
+		fullWhite.Name = "FullWhiteScreen"
+		fullWhite.ResetOnSpawn = false
+		fullWhite.IgnoreGuiInset = true
+		fullWhite.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		fullWhite.Parent = game:GetService("CoreGui")
+
+		local whiteFrame = Instance.new("Frame")
+		whiteFrame.Size = UDim2.new(1, 0, 1, 0)
+		whiteFrame.BackgroundColor3 = Color3.new(1, 1, 1)
+		whiteFrame.BorderSizePixel = 0
+		whiteFrame.Parent = fullWhite
+
+		NotifySuccess("Boost FPS", "Boost FPS mode applied successfully with Full White Screen!")
 	end
 })
 
