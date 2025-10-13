@@ -2923,7 +2923,7 @@ FishNotif:Toggle({
     end
 })
 
-llocal FishCategories = {
+local FishCategories = {
 	["Secret"] = {
 		"Blob Shark","Great Christmas Whale","Frostborn Shark","Great Whale","Worm Fish","Robot Kraken",
 		"Giant Squid","Ghost Worm Fish","Ghost Shark","Queen Crab","Orca","Crystal Crab","Monster Shark","Eerie Shark", "Scare", "Thin Armor Shark", "Orca", "Lochness Monster", "Megalodon", "Phanter Eel", "Mosasaur Shark", "King Jelly", "Bone Whale", "Elshark Gran Maja", "Ancient Whale"
