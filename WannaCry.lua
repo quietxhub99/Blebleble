@@ -1506,6 +1506,34 @@ AutoFarmArt:Toggle({
     end
 })
 
+local spotNames = {}
+for name in pairs(_G.ArtifactSpots) do
+    table.insert(spotNames, name)
+end
+
+AutoFarmArt:Dropdown({
+    Title = "Teleport to Lever Temple",
+    Values = spotNames,
+    Value = spotNames[1],
+    Callback = function(selected)
+        local spotCFrame = _G.ArtifactSpots[selected]
+        if spotCFrame then
+            local player = game.Players.LocalPlayer
+            local char = player.Character or player.CharacterAdded:Wait()
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+
+            if hrp then
+                hrp.CFrame = spotCFrame
+                NotifySuccess("Lever Temple", "Teleported to " .. selected)
+            else
+                warn("HumanoidRootPart not found!")
+            end
+        else
+            warn("Invalid teleport spot: " .. tostring(selected))
+        end
+    end
+})
+
 AutoFarmArt:Button({
     Title = "Unlock The Temple",
     Desc = "Still need Artifacts!",
