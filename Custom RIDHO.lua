@@ -58,8 +58,6 @@ local ijump = false
 
 local RodIdle = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Animations"):WaitForChild("ReelingIdle")
 
-local RodReel = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Animations"):WaitForChild("EasyFishReelStart")
-
 local RodShake = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Animations"):WaitForChild("RodThrow")
 
 -- Pastikan kamu punya Humanoid
@@ -72,7 +70,6 @@ local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Ani
 -- Load dan Play animasi
 local RodShake = animator:LoadAnimation(RodShake)
 local RodIdle = animator:LoadAnimation(RodIdle)
-local RodReel = animator:LoadAnimation(RodReel)
 
 -------------------------------------------
 ----- =======[ NOTIFY FUNCTION ]

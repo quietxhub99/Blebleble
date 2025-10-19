@@ -79,8 +79,6 @@ local ijump = false
 
 local RodIdle = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Animations"):WaitForChild("ReelingIdle")
 
-local RodReel = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Animations"):WaitForChild("EasyFishReelStart")
-
 local RodShake = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Animations"):WaitForChild("RodThrow")
 
 local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
@@ -91,7 +89,6 @@ local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Ani
 
 local RodShake = animator:LoadAnimation(RodShake)
 local RodIdle = animator:LoadAnimation(RodIdle)
-local RodReel = animator:LoadAnimation(RodReel)
 
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
