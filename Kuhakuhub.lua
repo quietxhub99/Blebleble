@@ -348,6 +348,21 @@ else
     warn("GitHub user tidak ditemukan.")
 end
 
+if getgenv().AutoRejoinConnection then
+    getgenv().AutoRejoinConnection:Disconnect()
+    getgenv().AutoRejoinConnection = nil
+end
+
+getgenv().AutoRejoinConnection = game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+    task.wait()
+    if child.Name == "ErrorPrompt" and child:FindFirstChild("MessageArea") and child.MessageArea:FindFirstChild("ErrorFrame") then
+        local TeleportService = game:GetService("TeleportService")
+        local Player = game.Players.LocalPlayer
+        task.wait(2) 
+        TeleportService:Teleport(game.PlaceId, Player)
+    end
+end)
+
 -------------------------------------------
 ----- =======[ AUTO FISH TAB ]
 -------------------------------------------
