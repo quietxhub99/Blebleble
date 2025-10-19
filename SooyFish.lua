@@ -409,8 +409,8 @@ FuncAutoFish.REReplicateTextEffect.OnClientEvent:Connect(function(data)
 		local myHead = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Head")
 		if myHead and data.Container == myHead then
 			task.spawn(function()
-				for i = 1, 3 do
-					task.wait(BypassDelay or 1)
+				for i = 1, 20 do
+					task.wait(0.5)
 					finishRemote:FireServer()
 				end
 			end)
@@ -435,10 +435,9 @@ function StartAutoFish()
 
 				local chargeRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]
 				chargeRemote:InvokeServer(workspace:GetServerTimeNow())
-				task.wait(0.5)
+				task.wait(0.1)
 
 				local timestamp = workspace:GetServerTimeNow()
-				RodShake:Play()
 				rodRemote:InvokeServer(timestamp)
 
 				local baseX, baseY = -0.7499996423721313, 0.991067629351885
@@ -451,10 +450,9 @@ function StartAutoFish()
 					y = math.random(0, 1000) / 1000
 				end
 
-				RodIdle:Play()
 				miniGameRemote:InvokeServer(x, y)
 
-				task.wait(customDelay)
+				task.wait(1.2)
 				FuncAutoFish.fishingActive = false
 			end)
 		end
@@ -465,8 +463,6 @@ function StopAutoFish()
 	FuncAutoFish.autofish = false
 	FuncAutoFish.fishingActive = false
 	FuncAutoFish.delayInitialized = false
-	RodIdle:Stop()
-	RodShake:Stop()
 end
 
 _G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
