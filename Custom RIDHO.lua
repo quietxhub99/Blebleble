@@ -2728,11 +2728,4 @@ SettingsTab:Button({
     end
 })
 
-SettingsTab:Button({
-    Title = "Load",
-    Desc = "Loads Settings from config",
-    Callback = function()
-        myConfig:Load()
-        NotifySuccess("Config Loaded", "Config has beed loaded!")
-    end
-})
+myConfig:Load()
