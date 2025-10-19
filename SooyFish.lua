@@ -409,8 +409,8 @@ FuncAutoFish.REReplicateTextEffect.OnClientEvent:Connect(function(data)
 		local myHead = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Head")
 		if myHead and data.Container == myHead then
 			task.spawn(function()
-				for i = 1, 20 do
-					task.wait(0.5)
+				for i = 1, 25 do
+					task.wait(0.1)
 					finishRemote:FireServer()
 				end
 			end)
