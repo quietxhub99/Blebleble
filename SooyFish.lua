@@ -2455,7 +2455,7 @@ local islandCoords = {
 	["13"] = { name = "Sishypus Statue", position = Vector3.new(-3792, -135, -986) },
 	["14"] = { name = "Ancient Jungle", position = Vector3.new(1478, 131, -613) },
 	["15"] = { name = "The Temple", position = Vector3.new(1477, -22, -631) },
-	["16"] = { name = "Underground Cellar", position = Vector3.new(2133, -91, -674)}
+	["16"] = { name = "Underground Cellar", position = Vector3.new(2133, -91, -674)},
 	["17"] = { name = "Hallowen Bay", position = Vector3.new(1875, 23, 3086)}
 }
 
