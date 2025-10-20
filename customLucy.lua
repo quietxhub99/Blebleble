@@ -283,23 +283,35 @@ getgenv().AutoRejoinConnection = game:GetService("CoreGui").RobloxPromptGui.prom
     end
 end)
 
+-------------------------------------------  
+----- =======[ AUTO FISH TAB ]  
 -------------------------------------------
------ =======[ AUTO FISH TAB ]
--------------------------------------------
+
+_G.REFishingStopped = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishingStopped"]
+_G.RFCancelFishingInputs = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/CancelFishingInputs"]
+
+_G.StopFishing = function()
+    local success, err = pcall(function()
+        _G.RFCancelFishingInputs:InvokeServer()
+        firesignal(_G.REFishingStopped.OnClientEvent)
+    end)
+end
 
 local FuncAutoFish = {
 	REReplicateTextEffect = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateTextEffect"],
 	autofish = false,
 	perfectCast = true,
 	fishingActive = false,
-	delayInitialized = false
+	delayInitialized = false,
+	lastCatchTime = 0,
+	CatchLast = tick()
 }
 
 local RodDelays = {
 	["Ares Rod"] = {custom = {1.0, 1.2}, bypass = 1.3},
-	["Angler Rod"] = {custom = {1.0, 1.2}, bypass = 1.1},
+	["Angler Rod"] = {custom = {1.0, 1.2}, bypass = 1.3},
 	["Ghostfinn Rod"] = {custom = {1.0, 1.2}, bypass = 0.57},
-	["Bamboo Rod"] = {custom = {1.0, 1.1}, bypass = 0.5},
+	["Bamboo Rod"] = {custom = {1.0, 1.1}, bypass = 0.65},
 	["Element Rod"] = {custom = {1.0, 1.2}, bypass = 0.65},
   
   ["Fluorescent Rod"] = {custom = {1.4, 2.0}, bypass = 1.55},
@@ -354,8 +366,8 @@ local function updateDelayBasedOnRod(showNotify)
 		FuncAutoFish.delayInitialized = true
 		if showNotify and FuncAutoFish.autofish then
 			NotifySuccess("Rod Detected", string.format(
-				"Rod: %s | Delay: %.2fs | Bypass: %.2fs",
-				rodName, customDelay, BypassDelay
+				"Rod: %s | Bypass: %s",
+				rodName, BypassDelay
 			))
 		end
 	else
@@ -373,6 +385,7 @@ end
 
 local obtainedFishUUIDs = {}
 local obtainedLimit = 30
+
 
 local RemoteFish = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
 RemoteFish.OnClientEvent:Connect(function(_, _, data)
@@ -396,76 +409,142 @@ local function monitorFishThreshold()
 				sellItems()
 				task.wait(0.5)
 			end
-			task.wait(0.3)
+			task.wait(0.5)
 		end
 	end)
 end
 
 
+_G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
+
+_G.isSpamming = false
+_G.spamThread = _G.spamThread
+
+function _G.startSpam()
+	if _G.isSpamming then return end
+	_G.isSpamming = true
+	_G.spamThread = task.spawn(function()
+		while _G.isSpamming do
+			finishRemote:FireServer()
+			task.wait(0.01)
+		end
+	end)
+end
+
+function _G.stopSpam()
+	_G.isSpamming = false
+end
+
 FuncAutoFish.REReplicateTextEffect.OnClientEvent:Connect(function(data)
-	if FuncAutoFish.autofish and FuncAutoFish.fishingActive
-	and data and data.TextData and data.TextData.EffectType == "Exclaim" then
+	if FuncAutoFish.autofish 
+	and data and data.TextData 
+	and data.TextData.EffectType == "Exclaim" then
 		local myHead = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Head")
 		if myHead and data.Container == myHead then
-			task.spawn(function()
-				for i = 1, 3 do
-					task.wait(BypassDelay or 1)
-					finishRemote:FireServer()
-				end
-			end)
+			_G.startSpam()
 		end
 	end
 end)
 
+_G.REFishCaught.OnClientEvent:Connect(function(fishName, info)
+	_G.stopSpam()
+end)
+
+_G.REFishCaught.OnClientEvent:Connect(function(fishName, data)
+	FuncAutoFish.lastCatchTime = tick()
+	FuncAutoFish.CatchLast = tick()
+	
+	if FuncAutoFish.autofish then
+		task.defer(function()
+			StartCast()
+		end)
+	end
+end)
+
+function StartCast()
+	local timestamp = workspace:GetServerTimeNow()
+	_G.chargeRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]
+	_G.equipRemote = net:WaitForChild("RE/EquipToolFromHotbar")
+	
+	_G.equipRemote:FireServer(1)
+	task.wait(0.1)
+
+	_G.chargeRemote:InvokeServer(timestamp)
+	task.wait(0.1)
+	
+	rodRemote:InvokeServer(timestamp)
+	task.wait(0.1)
+	RodShake:Play()
+
+	local baseX, baseY = -0.7499996423721313, 1
+	local x, y
+
+	if FuncAutoFish.perfectCast then
+		x, y = baseX, baseY
+	else
+		x = math.random(-1000, 1000) / 1000
+		y = math.random(0, 1000) / 1000
+	end
+	
+	RodIdle:Play()
+	miniGameRemote:InvokeServer(x, y)
+end
 
 function StartAutoFish()
+	if FuncAutoFish.autofish then return end
 	FuncAutoFish.autofish = true
+	FuncAutoFish.fishingActive = true
+	FuncAutoFish.delayInitialized = true
 	updateDelayBasedOnRod(true)
 	monitorFishThreshold()
+	StartCast()
+	StartAutoFishMonitor()
+end
+
+function StopAutoFish()
+	RodIdle:Stop()
+	RodShake:Stop()
+	FuncAutoFish.autofish = false
+	FuncAutoFish.fishingActive = false
+	FuncAutoFish.delayInitialized = false
+	if _G.StopFishing then
+		_G.StopFishing()
+	end
+	StopAutoFishMonitor()
+end
+
+_G.AutoFishMonitor = _G.AutoFishMonitor or { Running = false }
+
+function StartAutoFishMonitor()
+	if _G.AutoFishMonitor.Running then return end
+	_G.AutoFishMonitor.Running = true
 
 	task.spawn(function()
-		while FuncAutoFish.autofish do
-			pcall(function()
-				FuncAutoFish.fishingActive = true
+		while _G.AutoFishMonitor.Running do
+			task.wait(1)
 
-				local equipRemote = net:WaitForChild("RE/EquipToolFromHotbar")
-				equipRemote:FireServer(1)
-				task.wait(0.1)
+			if FuncAutoFish and FuncAutoFish.autofish then
+				local idle = tick() - (FuncAutoFish.CatchLast or tick())
+				if idle >= 15 then
+					NotifyWarning("Auto Fish", string.format("No fish caught for %.0f seconds, restarting...", idle))
+					StopAutoFish()
+					repeat task.wait(0.5)
+					until not FuncAutoFish.autofish and not FuncAutoFish.fishingActive
 
-				local chargeRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]
-				chargeRemote:InvokeServer(workspace:GetServerTimeNow())
-				task.wait(0.5)
-
-				local timestamp = workspace:GetServerTimeNow()
-				RodShake:Play()
-				rodRemote:InvokeServer(timestamp)
-
-				local baseX, baseY = -0.7499996423721313, 0.991067629351885
-				local x, y
-				if FuncAutoFish.perfectCast then
-					x = baseX + (math.random(-500, 500) / 10000000)
-					y = baseY + (math.random(-500, 500) / 10000000)
-				else
-					x = math.random(-1000, 1000) / 1000
-					y = math.random(0, 1000) / 1000
+					task.wait(3)
+					StartAutoFish()
+					FuncAutoFish.CatchLast = tick()
+					NotifySuccess("Auto Fish", "Restarted successfully")
 				end
-
-				RodIdle:Play()
-				miniGameRemote:InvokeServer(x, y)
-
-				task.wait(customDelay)
-				FuncAutoFish.fishingActive = false
-			end)
+			else
+				task.wait(2)
+			end
 		end
 	end)
 end
 
-function StopAutoFish()
-	FuncAutoFish.autofish = false
-	FuncAutoFish.fishingActive = false
-	FuncAutoFish.delayInitialized = false
-	RodIdle:Stop()
-	RodShake:Stop()
+function StopAutoFishMonitor()
+	_G.AutoFishMonitor.Running = false
 end
 
 
