@@ -176,22 +176,6 @@ WindUI:SetNotificationLower(true)
 ----- =======[ ALL TAB ]
 -------------------------------------------
 
-
-local DevTab = Window:Tab({
-    Title = "READ FIRST!",
-    Icon = "airplay"
-})
-
-local AutoFish = Window:Tab({ 
-	Title = "Auto Fish", 
-	Icon = "fish"
-})
-
-local AutoFav = Window:Tab({
-	Title = "Auto Favorite",
-	Icon = "star"
-})
-
 local Trade = Window:Tab({
 	Title = "Trade",
 	Icon = "handshake"
@@ -212,11 +196,6 @@ local WeatherTab = Window:Tab({
 	Icon = "cloud-rain"
 })
 
-local DStones = Window:Tab({
-	Title = "Double Enchant",
-	Icon = "gem"
-})
-
 local Utils = Window:Tab({
     Title = "Utility",
     Icon = "earth"
@@ -227,35 +206,6 @@ local SettingsTab = Window:Tab({
 	Icon = "cog" 
 })
 
--------------------------------------------
------ =======[ DEVELOPER TAB ]
--------------------------------------------
-
-DevTab:Paragraph({
-    Title = "Developer",
-    Desc = "This is Developer Contact",
-    Color = "Green",
-    Buttons = {
-    	{
-    		Title = "Discord Server",
-    		Callback = function()
-    			setclipboard("https://discord.gg/2aMDrb92kf")
-    		end
-    	},
-      {
-      	Title = "Instagram",
-      	Callback = function()
-      		setclipboard("https://instagram.com/quietxdev")
-        end
-      },
-      {
-      	Title = "Github",
-      	Callback = function()
-      		setclipboard("https://github.com/ohmygod-king")
-        end
-      }
-    }
-})
 
 if getgenv().AutoRejoinConnection then
     getgenv().AutoRejoinConnection:Disconnect()
@@ -275,6 +225,252 @@ end)
 -------------------------------------------  
 ----- =======[ AUTO FISH TAB ]  
 -------------------------------------------
+
+-------------------------------------------
+----- =======[ MASS TRADE TAB ]
+-------------------------------------------
+
+local TradeFunction = {
+	TempTradeList = {},
+	saveTempMode = false,
+	onTrade = false,
+	targetUserId = nil,
+	tradingInProgress = false,
+	autoAcceptTrade = false,
+	AutoTrade = false
+}
+
+local RETextNotification = net["RE/TextNotification"]
+local RFAwaitTradeResponse = net["RF/AwaitTradeResponse"]
+local InitiateTrade = net["RF/InitiateTrade"]
+
+local function getPlayerList()
+    local list = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(list, player.DisplayName .. " (" .. player.Name .. ")")
+        end
+    end
+    return list
+end
+
+local TradeTargetDropdown = Trade:Dropdown({
+    Title = "Select Trade Target",
+    Values = getPlayerList(),
+    Value = getPlayerList()[1] or nil,
+    Callback = function(selected)
+        local username = selected:match("%((.-)%)")
+        local player = Players:FindFirstChild(username)
+        if player then
+            TradeFunction.targetUserId = player.UserId
+            NotifySuccess("Trade Target", "Target found: " .. player.Name)
+        else
+            NotifyError("Trade Target", "Player not found!")
+        end
+    end
+})
+
+local function refreshDropdown()
+    local updatedList = getPlayerList()
+    TradeTargetDropdown:Refresh(updatedList)
+end
+
+Players.PlayerAdded:Connect(refreshDropdown)
+Players.PlayerRemoving:Connect(refreshDropdown)
+
+refreshDropdown()
+
+Trade:Toggle({
+    Title = "Mode Save Items",
+    Desc = "Click inventory item to add for Mass Trade",
+    Value = false,
+    Callback = function(state)
+        TradeFunction.saveTempMode = state
+        if state then
+            TradeFunction.TempTradeList = {}
+            NotifySuccess("Save Mode", "Enabled - Click items to save")
+        else
+            NotifyInfo("Save Mode", "Disabled - "..#TradeFunction.TempTradeList.." items saved")
+        end
+    end
+})
+
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+
+mt.__namecall = newcclosure(function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+
+    if TradeFunction.saveTempMode and tostring(self) == "RE/EquipItem" and method == "FireServer" then
+    	  local uuid, categoryName = args[1], args[2]
+        if uuid and categoryName then
+            table.insert(TradeFunction.TempTradeList, {UUID = uuid, Category = categoryName})
+            NotifySuccess("Save Mode", "Added item: " .. uuid .. " ("..categoryName..")")
+        end
+        return nil
+        
+    elseif TradeFunction.onTrade and tostring(self) == "RE/EquipItem" and method == "FireServer" then
+        local uuid = args[1]
+        if uuid and TradeFunction.targetUserId then
+            InitiateTrade:InvokeServer(TradeFunction.targetUserId, uuid)
+            NotifySuccess("Trade Sent", "Trade sent to " .. TradeFunction.targetUserId)
+        else
+            NotifyError("Trade Error", "Invalid target or item.")
+        end
+        return nil
+    end
+
+    return oldNamecall(self, unpack(args))
+end)
+
+setreadonly(mt, true)
+
+local function TradeAll()        
+    if TradeFunction.tradingInProgress then        
+        NotifyWarning("Mass Trade", "Trade already in progress!")        
+        return        
+    end        
+    if not TradeFunction.targetUserId then        
+        NotifyError("Mass Trade", "Set trade target first!")        
+        return        
+    end        
+    if #TradeFunction.TempTradeList == 0 then        
+        NotifyWarning("Mass Trade", "No items saved!")        
+        return        
+    end        
+        
+    TradeFunction.tradingInProgress = true        
+    NotifyInfo("Mass Trade", "Starting trade of "..#TradeFunction.TempTradeList.." items...")        
+        
+    task.spawn(function()        
+        for i, item in ipairs(TradeFunction.TempTradeList) do        
+            if not TradeFunction.AutoTrade then        
+                NotifyWarning("Mass Trade", "Auto Trade stopped!")        
+                break        
+            end        
+        
+            local uuid = item.UUID        
+            local category = item.Category        
+        
+            NotifyInfo("Mass Trade", "Trade item "..i.." of "..#TradeFunction.TempTradeList)        
+            InitiateTrade:InvokeServer(TradeFunction.targetUserId, uuid, category)        
+        
+            local tradeCompleted = false        
+            local timeout = 10        
+            local elapsed = 0        
+            local lastTrigger = 0
+            local cooldown = 0.5        
+        
+            local notifGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Text Notifications")
+            local connection
+            connection = notifGui.Frame.ChildAdded:Connect(function(child)
+                if child.Name == "TextTile" then
+                    task.wait(0.5)
+                    local header = child:FindFirstChild("Header")
+                    if header and header:IsA("TextLabel") and header.Text == "Trade completed!" then
+                        local now = tick()
+                        if now - lastTrigger > cooldown then
+                            lastTrigger = now
+                            tradeCompleted = true
+                            NotifySuccess("Mass Trade", "Success "..i.." of "..#TradeFunction.TempTradeList)
+                        end
+                    end
+                end
+            end)        
+        
+            repeat        
+                task.wait(0.2)        
+                elapsed += 0.2        
+            until tradeCompleted or elapsed >= timeout        
+        
+            if connection then        
+                connection:Disconnect()        
+            end        
+        
+            if not tradeCompleted then        
+                NotifyWarning("Mass Trade", "Trade timeout for item "..i)        
+            else        
+                task.wait(5.5)        
+            end        
+        end        
+        
+        NotifySuccess("Mass Trade", "Finished trading!")        
+        TradeFunction.tradingInProgress = false        
+        TradeFunction.TempTradeList = {}        
+    end)        
+end
+
+Trade:Toggle({
+    Title = "Auto Trade",
+    Desc = "Trade all saved items automatically",
+    Value = false,
+    Callback = function(state)
+        TradeFunction.AutoTrade = state
+        if TradeFunction.AutoTrade then
+            if #TradeFunction.TempTradeList == 0 then
+                NotifyError("Mass Trade", "No items saved to trade!")
+                TradeFunction.AutoTrade = false
+                return
+            end
+            TradeAll()
+            NotifySuccess("Mass Trade", "Auto Trade Enabled")
+        else
+            NotifyWarning("Mass Trade", "Auto Trade Disabled")
+        end
+    end
+})
+
+Trade:Toggle({
+    Title = "Trade (Original)",
+    Desc = "Click inventory items to Send Trade",
+    Value = false,
+    Callback = function(state)
+        TradeFunction.onTrade = state
+        if state then
+            NotifySuccess("Trade", "Trade Mode Enabled. Click an item to send trade.")
+        else
+            NotifyWarning("Trade", "Trade Mode Disabled.")
+        end
+    end
+})
+
+local RFAwaitTradeResponse = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/AwaitTradeResponse"]
+
+local autoAcceptTrade = false
+local TRADE_DELAY = 3
+
+RFAwaitTradeResponse.OnClientInvoke = function(fromPlayer, timeNow)
+	if autoAcceptTrade then
+
+		task.wait(TRADE_DELAY)
+
+		local newTime = workspace:GetServerTimeNow() + TRADE_DELAY
+
+		return true
+	else
+		return nil
+	end
+end
+
+Trade:Toggle({
+	Title = "Auto Accept Trade",
+	Value = false,
+	Callback = function(state)
+		autoAcceptTrade = state
+		if state then
+			NotifySuccess("Trade", "Auto Accept Trade Enabled")
+		else
+			NotifyWarning("Trade", "Auto Accept Trade Disabled")
+		end
+	end
+})
+
+-------------------------------------------
+----- =======[ AUTO FARM TAB ]
+-------------------------------------------
+
 
 _G.REFishingStopped = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishingStopped"]
 _G.RFCancelFishingInputs = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/CancelFishingInputs"]
@@ -536,7 +732,7 @@ function StopAutoFishMonitor()
 	_G.AutoFishMonitor.Running = false
 end
 
-local FishThres = AutoFish:Input({
+local FishThres = AutoFarmTab:Input({
 	Title = "Fish Threshold",
 	Placeholder = "Example: 1500",
 	Value = nil,
@@ -553,7 +749,7 @@ local FishThres = AutoFish:Input({
 
 myConfig:Register("FishThreshold", FishThres)
 
-AutoFish:Toggle({
+AutoFarmTab:Toggle({
 	Title = "Auto Fish",
 	Callback = function(value)
 		if value then
@@ -582,7 +778,7 @@ _G.StopFishing = function()
     end
 end
 
-AutoFish:Button({
+AutoFarmTab:Button({
     Title = "Stop Fishing",
     Locked = false,
     Callback = function()
@@ -593,7 +789,7 @@ AutoFish:Button({
 })
 
 
-local PerfectCast = AutoFish:Toggle({
+local PerfectCast = AutoFarmTab:Toggle({
     Title = "Auto Perfect Cast",
     Value = true,
     Callback = function(value)
@@ -601,57 +797,6 @@ local PerfectCast = AutoFish:Toggle({
     end
 })
 myConfig:Register("Prefect", PerfectCast)
-
-local REEquipItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipItem"]
-local RFSellItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellItem"]
-
-local autoSellMythic = false
-
-function ToggleAutoSellMythic(state)
-	autoSellMythic = state
-	if autoSellMythic then
-		NotifySuccess("AutoSellMythic", "Status: ON")
-	else
-		NotifyWarning("AutoSellMythic", "Status: OFF")
-	end
-end
-
-local oldFireServer
-oldFireServer = hookmetamethod(game, "__namecall", function(self, ...)
-	local args = {...}
-	local method = getnamecallmethod()
-
-	if autoSellMythic
-		and method == "FireServer"
-		and self == REEquipItem
-		and typeof(args[1]) == "string"
-		and args[2] == "Fishes" then
-
-		local uuid = args[1]
-
-		task.delay(1, function()
-			pcall(function()
-				local result = RFSellItem:InvokeServer(uuid)
-				if result then
-					NotifySuccess("AutoSellMythic", "Items Sold!!")
-				else
-					NotifyError("AutoSellMythic", "Failed to sell item!!")
-				end
-			end)
-		end)
-	end
-
-	return oldFireServer(self, ...)
-end)
-
-AutoFish:Toggle({
-	Title = "Auto Sell Mythic",
-	Desc = "Automatically sells clicked fish",
-	Default = false,
-	Callback = function(state)
-		ToggleAutoSellMythic(state)
-	end
-})
 
 
 function sellAllFishes()
@@ -682,432 +827,6 @@ function sellAllFishes()
 
 	end)
 end
-
-AutoFish:Button({
-    Title = "Sell All Fishes",
-    Locked = false,
-    Callback = function()
-        sellAllFishes()
-    end
-})
-
-AutoFish:Button({
-    Title = "Auto Enchant Rod",
-    Callback = function()
-        local ENCHANT_POSITION = Vector3.new(3231, -1303, 1402)
-		local char = workspace:WaitForChild("Characters"):FindFirstChild(LocalPlayer.Name)
-		local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
-		if not hrp then
-			NotifyError("Auto Enchant Rod", "Failed to get character HRP.")
-			return
-		end
-
-		NotifyInfo("Preparing Enchant...", "Please manually place Enchant Stone into slot 5 before we begin...", 5)
-
-		task.wait(3)
-
-		local Player = game:GetService("Players").LocalPlayer
-		local slot5 = Player.PlayerGui.Backpack.Display:GetChildren()[10]
-
-		local itemName = slot5 and slot5:FindFirstChild("Inner") and slot5.Inner:FindFirstChild("Tags") and slot5.Inner.Tags:FindFirstChild("ItemName")
-
-		if not itemName or not itemName.Text:lower():find("enchant") then
-			NotifyError("Auto Enchant Rod", "Slot 5 does not contain an Enchant Stone.")
-			return
-		end
-
-		NotifyInfo("Enchanting...", "It is in the process of Enchanting, please wait until the Enchantment is complete", 7)
-
-		local originalPosition = hrp.Position
-		task.wait(1)
-		hrp.CFrame = CFrame.new(ENCHANT_POSITION + Vector3.new(0, 5, 0))
-		task.wait(1.2)
-
-		local equipRod = net:WaitForChild("RE/EquipToolFromHotbar")
-		local activateEnchant = net:WaitForChild("RE/ActivateEnchantingAltar")
-
-		pcall(function()
-			equipRod:FireServer(5)
-			task.wait(0.5)
-			activateEnchant:FireServer()
-			task.wait(7)
-			NotifySuccess("Enchant", "Successfully Enchanted!", 3)
-		end)
-
-		task.wait(0.9)
-		hrp.CFrame = CFrame.new(originalPosition + Vector3.new(0, 3, 0))
-    end
-})
-
--------------------------------------------
------ =======[ AUTO FAV TAB ]
--------------------------------------------
-
-
-local GlobalFav = {
-	REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"],
-	REFavoriteItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FavoriteItem"],
-
-	FishIdToName = {},
-	FishNameToId = {},
-	FishNames = {},
-	Variants = {},
-	SelectedFishIds = {},
-	SelectedVariants = {},
-	AutoFavoriteEnabled = false
-}
-
--- Load Fish Names
-for _, item in pairs(ReplicatedStorage.Items:GetChildren()) do
-	local ok, data = pcall(require, item)
-	if ok and data.Data and data.Data.Type == "Fishes" then
-		local id = data.Data.Id
-		local name = data.Data.Name
-		GlobalFav.FishIdToName[id] = name
-		GlobalFav.FishNameToId[name] = id
-		table.insert(GlobalFav.FishNames, name)
-	end
-end
-
--- Load Variants
-for _, variantModule in pairs(ReplicatedStorage.Variants:GetChildren()) do
-	local ok, variantData = pcall(require, variantModule)
-	if ok and variantData.Data.Name then
-		local name = variantData.Data.Name
-		GlobalFav.Variants[name] = name
-	end
-end
-
-
-AutoFav:Toggle({
-	Title = "Enable Auto Favorite",
-	Value = false,
-	Callback = function(state)
-		GlobalFav.AutoFavoriteEnabled = state
-		if state then
-			NotifySuccess("Auto Favorite", "Auto Favorite feature enabled")
-		else
-			NotifyWarning("Auto Favorite", "Auto Favorite feature disabled")
-		end
-	end
-})
-
-
-AutoFav:Dropdown({
-	Title = "Auto Favorite Fishes",
-	Values = GlobalFav.FishNames,
-	Multi = true,
-	AllowNone = true,
-	Callback = function(selectedNames)
-		GlobalFav.SelectedFishIds = {}
-		for _, name in ipairs(selectedNames) do
-			local id = GlobalFav.FishNameToId[name]
-			if id then
-				GlobalFav.SelectedFishIds[id] = true
-			end
-		end
-		NotifyInfo("Auto Favorite", "Favoriting active for fish: " .. HttpService:JSONEncode(selectedNames))
-	end
-})
-
-
-AutoFav:Dropdown({
-	Title = "Auto Favorite Variants",
-	Values = GlobalFav.Variants,
-	Multi = true,
-	AllowNone = true,
-	Callback = function(selectedVariants)
-		GlobalFav.SelectedVariants = {}
-		for _, vName in ipairs(selectedVariants) do
-			for vId, name in pairs(GlobalFav.Variants) do
-				if name == vName then
-					GlobalFav.SelectedVariants[vId] = true
-				end
-			end
-		end
-		NotifyInfo("Auto Favorite", "Favoriting active for variants: " .. HttpService:JSONEncode(selectedVariants))
-	end
-})
-
-
-GlobalFav.REObtainedNewFishNotification.OnClientEvent:Connect(function(itemId, _, data)
-	if not GlobalFav.AutoFavoriteEnabled then return end
-
-	local uuid = data.InventoryItem and data.InventoryItem.UUID
-	local fishName = GlobalFav.FishIdToName[itemId] or "Unknown"
-	local variantId = data.InventoryItem.Metadata and data.InventoryItem.Metadata.VariantId
-
-	if not uuid then return end
-
-	local matchByName = GlobalFav.SelectedFishIds[itemId]
-	local matchByVariant = variantId and GlobalFav.SelectedVariants[variantId]
-
-	
-	local shouldFavorite = false
-
-	if matchByName and matchByVariant then
-		shouldFavorite = true
-	elseif matchByName and not next(GlobalFav.SelectedVariants) then
-		shouldFavorite = true
-	elseif matchByVariant and not matchByName then
-		shouldFavorite = true
-	end
-
-	if shouldFavorite then
-		GlobalFav.REFavoriteItem:FireServer(uuid)
-		local msg = "Favorited " .. fishName
-		if matchByVariant then
-			msg = msg .. " (" .. (GlobalFav.Variants[variantId] or variantId) .. " Variant)"
-		end
-		NotifySuccess("Auto Favorite", msg .. "!")
-	end
-end)
-
--------------------------------------------
------ =======[ MASS TRADE TAB ]
--------------------------------------------
-
-local TradeFunction = {
-	TempTradeList = {},
-	saveTempMode = false,
-	onTrade = false,
-	targetUserId = nil,
-	tradingInProgress = false,
-	autoAcceptTrade = false,
-	AutoTrade = false
-}
-
-local RETextNotification = net["RE/TextNotification"]
-local RFAwaitTradeResponse = net["RF/AwaitTradeResponse"]
-local InitiateTrade = net["RF/InitiateTrade"]
-
-local function getPlayerList()
-    local list = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            table.insert(list, player.DisplayName .. " (" .. player.Name .. ")")
-        end
-    end
-    return list
-end
-
-local TradeTargetDropdown = Trade:Dropdown({
-    Title = "Select Trade Target",
-    Values = getPlayerList(),
-    Value = getPlayerList()[1] or nil,
-    Callback = function(selected)
-        local username = selected:match("%((.-)%)")
-        local player = Players:FindFirstChild(username)
-        if player then
-            TradeFunction.targetUserId = player.UserId
-            NotifySuccess("Trade Target", "Target found: " .. player.Name)
-        else
-            NotifyError("Trade Target", "Player not found!")
-        end
-    end
-})
-
-local function refreshDropdown()
-    local updatedList = getPlayerList()
-    TradeTargetDropdown:Refresh(updatedList)
-end
-
-Players.PlayerAdded:Connect(refreshDropdown)
-Players.PlayerRemoving:Connect(refreshDropdown)
-
-refreshDropdown()
-
-Trade:Toggle({
-    Title = "Mode Save Items",
-    Desc = "Click inventory item to add for Mass Trade",
-    Value = false,
-    Callback = function(state)
-        TradeFunction.saveTempMode = state
-        if state then
-            TradeFunction.TempTradeList = {}
-            NotifySuccess("Save Mode", "Enabled - Click items to save")
-        else
-            NotifyInfo("Save Mode", "Disabled - "..#TradeFunction.TempTradeList.." items saved")
-        end
-    end
-})
-
-local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
-setreadonly(mt, false)
-
-mt.__namecall = newcclosure(function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
-
-    if TradeFunction.saveTempMode and tostring(self) == "RE/EquipItem" and method == "FireServer" then
-    	  local uuid, categoryName = args[1], args[2]
-        if uuid and categoryName then
-            table.insert(TradeFunction.TempTradeList, {UUID = uuid, Category = categoryName})
-            NotifySuccess("Save Mode", "Added item: " .. uuid .. " ("..categoryName..")")
-        end
-        return nil
-        
-    elseif TradeFunction.onTrade and tostring(self) == "RE/EquipItem" and method == "FireServer" then
-        local uuid = args[1]
-        if uuid and TradeFunction.targetUserId then
-            InitiateTrade:InvokeServer(TradeFunction.targetUserId, uuid)
-            NotifySuccess("Trade Sent", "Trade sent to " .. TradeFunction.targetUserId)
-        else
-            NotifyError("Trade Error", "Invalid target or item.")
-        end
-        return nil
-    end
-
-    return oldNamecall(self, unpack(args))
-end)
-
-setreadonly(mt, true)
-
-local function TradeAll()        
-    if TradeFunction.tradingInProgress then        
-        NotifyWarning("Mass Trade", "Trade already in progress!")        
-        return        
-    end        
-    if not TradeFunction.targetUserId then        
-        NotifyError("Mass Trade", "Set trade target first!")        
-        return        
-    end        
-    if #TradeFunction.TempTradeList == 0 then        
-        NotifyWarning("Mass Trade", "No items saved!")        
-        return        
-    end        
-        
-    TradeFunction.tradingInProgress = true        
-    NotifyInfo("Mass Trade", "Starting trade of "..#TradeFunction.TempTradeList.." items...")        
-        
-    task.spawn(function()        
-        for i, item in ipairs(TradeFunction.TempTradeList) do        
-            if not TradeFunction.AutoTrade then        
-                NotifyWarning("Mass Trade", "Auto Trade stopped!")        
-                break        
-            end        
-        
-            local uuid = item.UUID        
-            local category = item.Category        
-        
-            NotifyInfo("Mass Trade", "Trade item "..i.." of "..#TradeFunction.TempTradeList)        
-            InitiateTrade:InvokeServer(TradeFunction.targetUserId, uuid, category)        
-        
-            local tradeCompleted = false        
-            local timeout = 10        
-            local elapsed = 0        
-            local lastTrigger = 0
-            local cooldown = 0.5        
-        
-            local notifGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Text Notifications")
-            local connection
-            connection = notifGui.Frame.ChildAdded:Connect(function(child)
-                if child.Name == "TextTile" then
-                    task.wait(0.5)
-                    local header = child:FindFirstChild("Header")
-                    if header and header:IsA("TextLabel") and header.Text == "Trade completed!" then
-                        local now = tick()
-                        if now - lastTrigger > cooldown then
-                            lastTrigger = now
-                            tradeCompleted = true
-                            NotifySuccess("Mass Trade", "Success "..i.." of "..#TradeFunction.TempTradeList)
-                        end
-                    end
-                end
-            end)        
-        
-            repeat        
-                task.wait(0.2)        
-                elapsed += 0.2        
-            until tradeCompleted or elapsed >= timeout        
-        
-            if connection then        
-                connection:Disconnect()        
-            end        
-        
-            if not tradeCompleted then        
-                NotifyWarning("Mass Trade", "Trade timeout for item "..i)        
-            else        
-                task.wait(5.5)        
-            end        
-        end        
-        
-        NotifySuccess("Mass Trade", "Finished trading!")        
-        TradeFunction.tradingInProgress = false        
-        TradeFunction.TempTradeList = {}        
-    end)        
-end
-
-Trade:Toggle({
-    Title = "Auto Trade",
-    Desc = "Trade all saved items automatically",
-    Value = false,
-    Callback = function(state)
-        TradeFunction.AutoTrade = state
-        if TradeFunction.AutoTrade then
-            if #TradeFunction.TempTradeList == 0 then
-                NotifyError("Mass Trade", "No items saved to trade!")
-                TradeFunction.AutoTrade = false
-                return
-            end
-            TradeAll()
-            NotifySuccess("Mass Trade", "Auto Trade Enabled")
-        else
-            NotifyWarning("Mass Trade", "Auto Trade Disabled")
-        end
-    end
-})
-
-Trade:Toggle({
-    Title = "Trade (Original)",
-    Desc = "Click inventory items to Send Trade",
-    Value = false,
-    Callback = function(state)
-        TradeFunction.onTrade = state
-        if state then
-            NotifySuccess("Trade", "Trade Mode Enabled. Click an item to send trade.")
-        else
-            NotifyWarning("Trade", "Trade Mode Disabled.")
-        end
-    end
-})
-
-local RFAwaitTradeResponse = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/AwaitTradeResponse"]
-
-local autoAcceptTrade = false
-local TRADE_DELAY = 3
-
-RFAwaitTradeResponse.OnClientInvoke = function(fromPlayer, timeNow)
-	if autoAcceptTrade then
-
-		task.wait(TRADE_DELAY)
-
-		local newTime = workspace:GetServerTimeNow() + TRADE_DELAY
-
-		return true
-	else
-		return nil
-	end
-end
-
-Trade:Toggle({
-	Title = "Auto Accept Trade",
-	Value = false,
-	Callback = function(state)
-		autoAcceptTrade = state
-		if state then
-			NotifySuccess("Trade", "Auto Accept Trade Enabled")
-		else
-			NotifyWarning("Trade", "Auto Accept Trade Disabled")
-		end
-	end
-})
-
--------------------------------------------
------ =======[ AUTO FARM TAB ]
--------------------------------------------
 
 
 local floatPlatform = nil
@@ -1598,6 +1317,63 @@ AutoFarmTab:Dropdown({
 	end
 })
 
+AutoFarmTab:Button({
+    Title = "Sell All Fishes",
+    Locked = false,
+    Callback = function()
+        sellAllFishes()
+    end
+})
+
+AutoFarmTab:Button({
+    Title = "Auto Enchant Rod",
+    Callback = function()
+        local ENCHANT_POSITION = Vector3.new(3231, -1303, 1402)
+		local char = workspace:WaitForChild("Characters"):FindFirstChild(LocalPlayer.Name)
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+		if not hrp then
+			NotifyError("Auto Enchant Rod", "Failed to get character HRP.")
+			return
+		end
+
+		NotifyInfo("Preparing Enchant...", "Please manually place Enchant Stone into slot 5 before we begin...", 5)
+
+		task.wait(3)
+
+		local Player = game:GetService("Players").LocalPlayer
+		local slot5 = Player.PlayerGui.Backpack.Display:GetChildren()[10]
+
+		local itemName = slot5 and slot5:FindFirstChild("Inner") and slot5.Inner:FindFirstChild("Tags") and slot5.Inner.Tags:FindFirstChild("ItemName")
+
+		if not itemName or not itemName.Text:lower():find("enchant") then
+			NotifyError("Auto Enchant Rod", "Slot 5 does not contain an Enchant Stone.")
+			return
+		end
+
+		NotifyInfo("Enchanting...", "It is in the process of Enchanting, please wait until the Enchantment is complete", 7)
+
+		local originalPosition = hrp.Position
+		task.wait(1)
+		hrp.CFrame = CFrame.new(ENCHANT_POSITION + Vector3.new(0, 5, 0))
+		task.wait(1.2)
+
+		local equipRod = net:WaitForChild("RE/EquipToolFromHotbar")
+		local activateEnchant = net:WaitForChild("RE/ActivateEnchantingAltar")
+
+		pcall(function()
+			equipRod:FireServer(5)
+			task.wait(0.5)
+			activateEnchant:FireServer()
+			task.wait(7)
+			NotifySuccess("Enchant", "Successfully Enchanted!", 3)
+		end)
+
+		task.wait(0.9)
+		hrp.CFrame = CFrame.new(originalPosition + Vector3.new(0, 3, 0))
+    end
+})
+
 -------------------------------------------
 ----- =======[ ARTIFACT TAB ]
 -------------------------------------------
@@ -1862,68 +1638,6 @@ local WeatherDropdown = WeatherTab:Dropdown({
 myConfig:Register("WeatherDropdown", WeatherDropdown)
 
 -------------------------------------------
------ =======[ DOUBLE ENCHANT STONES ]
--------------------------------------------
-
-DStones:Paragraph({
-	Title = "Guide",
-	Color = "Green",
-	Desc = [[
-TUTORIAL FOR DOUBLE ENCHANT
-
-1. "Enabled Double Enchant" first
-2. Hold your "SECRET" fish, then click "Get Enchant Stone"
-3. Click "Double Enchant Rod" to do Double Enchant, and don't forget to place the stone in slot 5
-
-Good Luck!
-]]
-})
-
-_G.ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-DStones:Button({
-    Title = "Enable Double Enchant",
-    Locked = false,
-    Callback = function()
-        _G.ActivateDoubleEnchant = _G.ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ActivateSecondEnchantingAltar"]
-        if _G.ActivateDoubleEnchant then
-            _G.ActivateDoubleEnchant:FireServer()
-            NotifySuccess("Double Enchant", "Double Enchant Enabled for Rods")
-        else
-            warn("Cant find Double Enchant functions")
-        end
-    end
-})
-
-DStones:Button({
-    Title = "Get Enchant Stones",
-    Locked = false,
-    Callback = function()
-        _G.CreateTranscendedStone = _G.ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/CreateTranscendedStone"]
-        if _G.CreateTranscendedStone then
-            local result = _G.CreateTranscendedStone:InvokeServer()
-            NotifySuccess("Double Enchant", "Got Enchant Stone!")
-        else
-            warn("[❌] Tidak dapat menemukan RemoteFunction CreateTranscendedStone.")
-        end
-    end
-})
-
-DStones:Button({
-	Title = "Double Enchant Rod",
-	Desc = "Hold the stone in slot 5",
-	Callback = function()
-		_G.ActiveStone = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ActivateSecondEnchantingAltar"]
-		if _G.ActiveStone then
-			local result = _G.ActiveStone:FireServer()
-			NotifySuccess("Double Enchant", "Enchanting....")
-		else
-			warn("Error something")
-		end
-	end
-})
-
--------------------------------------------
 ----- =======[ PLAYER TAB ]
 -------------------------------------------
 
@@ -2075,28 +1789,24 @@ local function FadeScreen(duration)
 	gui.ResetOnSpawn = false
 
 	local frame = Instance.new("Frame", gui)
-	frame.BackgroundColor3 = Color3.new(0, 0, 0)
+	frame.BackgroundColor3 = Color3.new(255, 255, 255)
 	frame.Size = UDim2.new(1, 0, 1, 0)
 	frame.BackgroundTransparency = 1
 
 	local tweenIn = TweenService:Create(frame, TweenInfo.new(0.2), { BackgroundTransparency = 0.9 })
 	tweenIn:Play()
-	tweenIn.Completed:Wait()
 
 	wait(duration)
 
 	local tweenOut = TweenService:Create(frame, TweenInfo.new(0.3), { BackgroundTransparency = 1 })
 	tweenOut:Play()
-	tweenOut.Completed:Wait()
-	gui:Destroy()
 end
 
 local function SafePurchase(callback)
 	local originalCFrame = HRP.CFrame
 	HRP.CFrame = npcCFrame
-	FadeScreen(0.9)
 	pcall(callback)
-	wait(1)
+	wait(99999)
 	HRP.CFrame = originalCFrame
 end
 
@@ -2233,83 +1943,94 @@ SettingsTab:Toggle({
 	end,
 })
 
-SettingsTab:Button({
-	Title = "Boost FPS (Ultra Low Graphics)",
-	Callback = function()
-		for _, v in pairs(game:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.Material = Enum.Material.SmoothPlastic
-				v.Reflectance = 0
-				v.CastShadow = false
-				v.Transparency = v.Transparency > 0.5 and 1 or v.Transparency
-			elseif v:IsA("Decal") or v:IsA("Texture") then
-				v.Transparency = 1
-			elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Explosion") then
-				v.Enabled = false
-			elseif v:IsA("Beam") or v:IsA("SpotLight") or v:IsA("PointLight") or v:IsA("SurfaceLight") then
-				v.Enabled = false
-			elseif v:IsA("ShirtGraphic") or v:IsA("Shirt") or v:IsA("Pants") then
-				v:Destroy()
-			end
-		end
-
-		local Lighting = game:GetService("Lighting")
-		for _, effect in pairs(Lighting:GetChildren()) do
-			if effect:IsA("PostEffect") then
-				effect.Enabled = false
-			end
-		end
-		Lighting.GlobalShadows = false
-		Lighting.FogEnd = 9e9
-		Lighting.Brightness = 1
-		Lighting.EnvironmentDiffuseScale = 0
-		Lighting.EnvironmentSpecularScale = 0
-		Lighting.ClockTime = 12
-		Lighting.Ambient = Color3.new(1, 1, 1)
-		Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-
-		local Terrain = workspace:FindFirstChildOfClass("Terrain")
-		if Terrain then
-			Terrain.WaterWaveSize = 0
-			Terrain.WaterWaveSpeed = 0
-			Terrain.WaterReflectance = 0
-			Terrain.WaterTransparency = 1
-			Terrain.Decoration = false
-		end
-
-		settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-		settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01
-		settings().Rendering.TextureQuality = Enum.TextureQuality.Low
-
-		game:GetService("UserSettings").GameSettings.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
-		game:GetService("UserSettings").GameSettings.Fullscreen = true
-
-		for _, s in pairs(workspace:GetDescendants()) do
-			if s:IsA("Sound") and s.Playing and s.Volume > 0.5 then
-				s.Volume = 0.1
-			end
-		end
-
-		if collectgarbage then
-			collectgarbage("collect")
-		end
-
-		local fullWhite = Instance.new("ScreenGui")
-		fullWhite.Name = "FullWhiteScreen"
-		fullWhite.ResetOnSpawn = false
-		fullWhite.IgnoreGuiInset = true
-		fullWhite.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-		fullWhite.Parent = game:GetService("CoreGui")
-
-		local whiteFrame = Instance.new("Frame")
-		whiteFrame.Size = UDim2.new(1, 0, 1, 0)
-		whiteFrame.BackgroundColor3 = Color3.new(1, 1, 1)
-		whiteFrame.BorderSizePixel = 0
-		whiteFrame.Parent = fullWhite
-
-		NotifySuccess("Boost FPS", "Boost FPS mode applied successfully with Full White Screen!")
-	end
-})
+SettingsTab:Button({  
+	Title = "Boost FPS (Ultra Low Graphics)",  
+	Callback = function()  
+		for _, v in pairs(game:GetDescendants()) do  
+			if v:IsA("BasePart") then  
+				v.Material = Enum.Material.SmoothPlastic  
+				v.Reflectance = 0  
+				v.CastShadow = false  
+				v.Transparency = v.Transparency > 0.5 and 1 or v.Transparency  
+			elseif v:IsA("Decal") or v:IsA("Texture") then  
+				v.Transparency = 1  
+			elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Explosion") then  
+				v.Enabled = false  
+			elseif v:IsA("Beam") or v:IsA("SpotLight") or v:IsA("PointLight") or v:IsA("SurfaceLight") then  
+				v.Enabled = false  
+			elseif v:IsA("ShirtGraphic") or v:IsA("Shirt") or v:IsA("Pants") then  
+				v:Destroy()  
+			end  
+		end  
+  
+		local Lighting = game:GetService("Lighting")  
+		for _, effect in pairs(Lighting:GetChildren()) do  
+			if effect:IsA("PostEffect") then  
+				effect.Enabled = false  
+			end  
+		end  
+		Lighting.GlobalShadows = false  
+		Lighting.FogEnd = 9e9  
+		Lighting.Brightness = 1  
+		Lighting.EnvironmentDiffuseScale = 0  
+		Lighting.EnvironmentSpecularScale = 0  
+		Lighting.ClockTime = 12  
+		Lighting.Ambient = Color3.new(1, 1, 1)  
+		Lighting.OutdoorAmbient = Color3.new(1, 1, 1)  
+  
+		local Terrain = workspace:FindFirstChildOfClass("Terrain")  
+		if Terrain then  
+			Terrain.WaterWaveSize = 0  
+			Terrain.WaterWaveSpeed = 0  
+			Terrain.WaterReflectance = 0  
+			Terrain.WaterTransparency = 1  
+			Terrain.Decoration = false  
+		end  
+  
+		settings().Rendering.QualityLevel = Enum.QualityLevel.Level01  
+		settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01  
+		settings().Rendering.TextureQuality = Enum.TextureQuality.Low  
+  
+		game:GetService("UserSettings").GameSettings.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1  
+		game:GetService("UserSettings").GameSettings.Fullscreen = true  
+  
+		for _, s in pairs(workspace:GetDescendants()) do  
+			if s:IsA("Sound") and s.Playing and s.Volume > 0.5 then  
+				s.Volume = 0.1  
+			end  
+		end  
+  
+		if collectgarbage then  
+			collectgarbage("collect")  
+		end  
+  
+		local fullWhite = Instance.new("ScreenGui")  
+		fullWhite.Name = "FullWhiteScreen"  
+		fullWhite.ResetOnSpawn = false  
+		fullWhite.IgnoreGuiInset = true  
+		fullWhite.ZIndexBehavior = Enum.ZIndexBehavior.Global  
+		fullWhite.DisplayOrder = 999999999  
+		fullWhite.Parent = game:GetService("CoreGui")  
+  
+		local whiteFrame = Instance.new("Frame")  
+		whiteFrame.Size = UDim2.new(1, 0, 1, 0)  
+		whiteFrame.BackgroundColor3 = Color3.new(0, 0, 0)  
+		whiteFrame.BorderSizePixel = 0  
+		whiteFrame.ZIndex = 999999999  
+		whiteFrame.Parent = fullWhite  
+  
+		-- Tambahan keamanan agar layer putih tetap di layar selamanya  
+		task.spawn(function()  
+			while task.wait(0.5) do  
+				if not fullWhite or not fullWhite.Parent then  
+					fullWhite.Parent = game:GetService("CoreGui")  
+				end  
+			end  
+		end)  
+  
+		NotifySuccess("Boost FPS", "Boost FPS mode applied successfully with Full White Screen!")  
+	end  
+})  
 
 SettingsTab:Button({
 	Title = "HDR Shader",
