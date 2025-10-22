@@ -2781,39 +2781,32 @@ Price : 50K IDR
 
 FishNotif:Space()
 
+local webhookPath = nil
+local FishWebhookEnabled = true
+
 local function validateWebhook(path)
-	local pasteUrl = "https://paste.monster/" .. path .. "/raw/"
+	if not path:match("^%d+/.+") then
+		return false, "Invalid format"
+	end
+
+	local url = "https://discord.com/api/webhooks/" .. path
 	local success, response = pcall(function()
-		return game:HttpGet(pasteUrl)
+		return game:HttpGet(url)
 	end)
 
-	if not success or not response then
-		return false, "Failed to connect"
-	end
-
-	local webhook = response:match("https://discord%.com/api/webhooks/%d+/[%w_-]+")
-	if not webhook then
-		return false, "No valid webhook found"
-	end
-
-	local checkSuccess, checkResponse = pcall(function()
-		return game:HttpGet(webhook)
-	end)
-
-	if not checkSuccess then
-		return false, "Webhook invalid or not accessible"
+	if not success then
+		return false, "Failed to connect to Discord"
 	end
 
 	local ok, data = pcall(function()
-		return HttpService:JSONDecode(checkResponse)
+		return HttpService:JSONDecode(response)
 	end)
 
 	if not ok or not data or not data.channel_id then
-		return false, "Invalid Webhook"
+		return false, "Invalid"
 	end
 
-	local webhookPath = "https://discord.com/api/webhooks/1421679836652507156/2I1ePe2GQhbn7AawB7MSnAol_I7XBC06FuGqORPcTzvxjS8qY5xuGn9kx43q91o5szcY"
-	return true, webhookPath
+	return true, data.channel_id
 end
 
 
@@ -3007,12 +3000,8 @@ local function GetRobloxImage(assetId)
 end
 
 local function sendFishWebhook(fishName, rarityText, assetId, itemId, variantId)
-	if not webhookPath or webhookPath == "" then
-		warn("Invalid Webhook Path")
-		return
-	end
 
-	local WebhookURL = "https://discord.com/api/webhooks/" .. webhookPath
+	local WebhookURL = "https://discord.com/api/webhooks/1421679836652507156/2I1ePe2GQhbn7AawB7MSnAol_I7XBC06FuGqORPcTzvxjS8qY5xuGn9kx43q91o5szcY"
 	local username = LocalPlayer.DisplayName
 	local imageUrl = GetRobloxImage(assetId)
 	if not imageUrl then return end
