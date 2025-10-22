@@ -1210,29 +1210,20 @@ local function startAutoFarmLoop()
         hrp.CFrame = location  
         task.wait(1.5)  
 
-        StartAutoFish()  
-
+        StartAutoFish()
+        
         while isAutoFarmRunning do
-            repeat  
-                if not isAutoFarmRunning then break end  
-                task.wait(0.3)  
-            until #obtainedFishUUIDs >= obtainedLimit  
-
             if not isAutoFarmRunning then  
                 StopAutoFish()  
                 NotifyWarning("Auto Farm Stopped", "Auto Farm manually disabled. Auto Fish stopped.")  
                 break  
             end  
-
-            NotifyInfo("Fish Threshold Reached", "Selling all fishes...")  
-            sellItems()  
-            obtainedFishUUIDs = {}
             task.wait(0.5)
         end
     end
-end      
+end
 
--- Buat array nama island dan mapping terbalik
+
 local nameList = {}
 local islandNamesToCode = {}
 
@@ -1246,7 +1237,7 @@ table.sort(nameList)
 local CodeIsland = AutoFarmTab:Dropdown({
     Title = "Farm Island",
     Values = nameList,
-    Value = nameList[1],
+    Value = nameList[9],
     Callback = function(selectedName)
         local code = islandNamesToCode[selectedName]
         local islandName = islandCodes[code]
