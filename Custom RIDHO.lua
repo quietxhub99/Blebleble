@@ -1051,7 +1051,6 @@ end
 
 task.spawn(monitorAutoTP)
 
-local selectedIsland = "01"
 local isAutoFarmRunning = false
 
 local islandCodes = {
@@ -1247,7 +1246,7 @@ table.sort(nameList)
 local CodeIsland = AutoFarmTab:Dropdown({
     Title = "Farm Island",
     Values = nameList,
-    Value = nameList[1], -- default value
+    Value = nameList[1],
     Callback = function(selectedName)
         local code = islandNamesToCode[selectedName]
         local islandName = islandCodes[code]
