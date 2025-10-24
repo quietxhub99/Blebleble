@@ -1151,7 +1151,6 @@ end
 
 task.spawn(monitorAutoTP)
 
-
 local isAutoFarmRunning = true
 
 local islandCodes = {
@@ -2953,5 +2952,3 @@ SettingsTab:Button({
         NotifySuccess("Config Loaded", "Config has beed loaded!")
     end
 })
-
-startAutoFarmLoop()
