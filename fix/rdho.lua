@@ -1177,8 +1177,6 @@ end
 
 task.spawn(monitorAutoTP)
 
-
-local selectedIsland = "Crater Islands"
 local isAutoFarmRunning = true
 
 local islandCodes = {
@@ -1284,10 +1282,10 @@ local farmLocations = {
 }
 
 local function startAutoFarmLoop()
-    NotifySuccess("Auto Farm Enabled", "Fishing started on island: " .. selectedIsland)
+    NotifySuccess("Auto Farm Enabled", "Fishing started on island: " .. _G.selectedIsland)
 
     while isAutoFarmRunning do  
-        local islandSpots = farmLocations[selectedIsland]  
+        local islandSpots = farmLocations[_G.selectedIsland]  
         if type(islandSpots) == "table" and #islandSpots > 0 then  
             location = islandSpots[math.random(1, #islandSpots)]  
         else  
@@ -1346,7 +1344,7 @@ local CodeIsland = AutoFarmTab:Dropdown({
         local code = islandNamesToCode[selectedName]
         local islandName = islandCodes[code]
         if islandName and farmLocations[islandName] then
-            selectedIsland = islandName
+            _G.selectedIsland = islandName
             NotifySuccess("Island Selected", "Farming location set to " .. islandName)
         else
             NotifyError("Invalid Selection", "The island name is not recognized.")
