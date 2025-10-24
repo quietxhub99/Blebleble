@@ -2893,7 +2893,7 @@ local FishCategories = {
 		"Giant Squid","Ghost Worm Fish","Ghost Shark","Queen Crab","Orca","Crystal Crab","Monster Shark","Eerie Shark", "Scare", "Thin Armor Shark", "Orca", "Lochness Monster", "Megalodon", "Phanter Eel", "Mosasaur Shark", "King Jelly", "Bone Whale", "Elshark Gran Maja", "Ancient Whale", "Zombie Megalodon", "Zombie Shark", "Dead Zombie Shark", 
 	},
 	["Mythic"] = {
-		"Gingerbread Shark","Loving Shark","King Crab","Blob Fish","Hermit Crab","Luminous Fish",
+		"Gingerbread Shark","Loving Shark","King Crab","Blob Fish","Luminous Fish",
 		"Plasma Shark","Abyss Seahorse","Blueflame Ray","Hammerhead Shark","Hawks Turtle",
 		"Manta Ray","Loggerhead Turtle","Prismy Seahorse","Gingerbread Turtle", "Armor Catfish", "Armor Thin Shark", "Strippled Seahorse","Thresher Shark","Dotted Stingray", "Sharp One", "Hybodius Shark", "Crocodile", "Ancient Relic Crocodile", "Mammoth Appafish", "Crystal Salamender", "Frankenstein Longsnapper", "Dark Pumpkin Appafish", "Pumpkin Ray", "Mythic Reaver Scythe",
 	},
