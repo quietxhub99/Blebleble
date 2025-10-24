@@ -1177,6 +1177,8 @@ end
 
 task.spawn(monitorAutoTP)
 
+
+local selectedIsland = "Crater Islands"
 local isAutoFarmRunning = true
 
 local islandCodes = {
