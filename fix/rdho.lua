@@ -1151,11 +1151,8 @@ end
 
 task.spawn(monitorAutoTP)
 
---[[
-local selectedIsland = "Crater Islands"
-local isAutoFarmRunning = true
---]]
 
+local isAutoFarmRunning = true
 
 local islandCodes = {
     ["01"] = "Crater Islands",
