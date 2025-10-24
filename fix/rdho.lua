@@ -1154,7 +1154,8 @@ task.spawn(monitorAutoTP)
 --[[
 local selectedIsland = "Crater Islands"
 local isAutoFarmRunning = true
-]]
+--]]
+
 
 local islandCodes = {
     ["01"] = "Crater Islands",
@@ -2955,3 +2956,5 @@ SettingsTab:Button({
         NotifySuccess("Config Loaded", "Config has beed loaded!")
     end
 })
+
+startAutoFarmLoop()
