@@ -1313,8 +1313,6 @@ AutoFarmTab:Section({
 	TextXAlignment = "Center",
 })
 
-startAutoFarmLoop()
-
 local CodeIsland = AutoFarmTab:Dropdown({
     Title = "Farm Island",
     Values = nameList,
