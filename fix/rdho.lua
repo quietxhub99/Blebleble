@@ -1307,11 +1307,11 @@ local function startAutoFarmLoop()
         hrp.CFrame = location  
         task.wait(1.5)  
 
-        StartAutoFish()
+        StartAutoFish5X()
         
         while isAutoFarmRunning do
             if not isAutoFarmRunning then  
-                StopAutoFish()  
+                StopAutoFish5X()  
                 NotifyWarning("Auto Farm Stopped", "Auto Farm manually disabled. Auto Fish stopped.")  
                 break  
             end  
@@ -2683,6 +2683,54 @@ startFishDetection()
 -------------------------------------------
 ----- =======[ SETTINGS TAB ]
 -------------------------------------------
+
+_G.saveFileName = "savedPos.json"
+
+function _G.savePosition()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if root then
+        local posData = {
+            x = root.Position.X,
+            y = root.Position.Y,
+            z = root.Position.Z
+        }
+        writefile(_G.saveFileName, HttpService:JSONEncode(posData))
+    else
+        warn("[❌] Gagal menyimpan posisi: HRP tidak ditemukan")
+    end
+end
+
+function _G.loadPosition()
+    if isfile(_G.saveFileName) then
+        local data = readfile(_G.saveFileName)
+        local pos = HttpService:JSONDecode(data)
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local root = char:WaitForChild("HumanoidRootPart")
+        root.CFrame = CFrame.new(pos.x, pos.y, pos.z)
+        print("[📍] Posisi berhasil diload:", Vector3.new(pos.x, pos.y, pos.z))
+    else
+        warn("[❌] Tidak ada posisi tersimpan.")
+    end
+end
+
+SettingsTab:Button({
+    Title = "Save Position",
+    Justify = "Center",
+    Callback = function()
+        _G.savePosition()
+    end
+})
+
+SettingsTab:Space()
+
+SettingsTab:Button({
+    Title = "Load Position",
+    Justify = "Center",
+    Callback = function()
+        _G.loadPosition()
+    end
+})
 
 
 _G.AntiAFKEnabled = true
