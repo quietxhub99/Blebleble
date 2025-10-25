@@ -2724,14 +2724,6 @@ SettingsTab:Button({
 
 SettingsTab:Space()
 
-SettingsTab:Button({
-    Title = "Load Position",
-    Justify = "Center",
-    Callback = function()
-        _G.loadPosition()
-    end
-})
-
 
 _G.AntiAFKEnabled = true
 _G.AFKConnection = nil
@@ -2962,6 +2954,7 @@ SettingsTab:Button({
     Icon = "",
     Callback = function()
         myConfig:Load()
+        _G.loadPosition()
         NotifySuccess("Config Loaded", "Config has beed loaded!")
     end
 })
