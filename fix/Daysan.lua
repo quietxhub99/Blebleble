@@ -617,9 +617,9 @@ _G.AutoFishes = _G.FishSec:Toggle({
 	Title = "Auto Fish",
 	Callback = function(value)
 		if value then
-			StartAutoFish()
+			StartAutoFish5X()
 		else
-			StopAutoFish()
+			StopAutoFish5X()
 		end
 	end
 })
