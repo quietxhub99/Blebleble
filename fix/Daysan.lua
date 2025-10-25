@@ -2024,7 +2024,7 @@ local function safeHttpRequest(data)
 		return false
 	end
 
-	local retries = 3
+	local retries = 10
 	for i = 1, retries do
 		local success, err = pcall(function()
 			requestFunc({
