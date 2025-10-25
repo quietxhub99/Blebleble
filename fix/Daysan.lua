@@ -261,16 +261,6 @@ WindUI:Notify({
 ----- =======[ ALL TAB ]
 -------------------------------------------
 
-local Home = Window:Tab({
-	Title = "Developer Info",
-	Icon = "hard-drive"
-})
-
-_G.ServerPage = Window:Tab({
-	Title = "Server List",
-	Icon = "server"
-})
-
 local AllMenu = Window:Section({
 	Title = "All Menu Here",
 	Icon = "tally-3",
@@ -312,95 +302,6 @@ local SettingsTab = AllMenu:Tab({
 	Icon = "cog" 
 })
 
--------------------------------------------
------ =======[ HOME TAB ]
--------------------------------------------
-
-local	InviteAPI = "https://discord.com/api/v10/invites/"
-
-local function LookupDiscordInvite(inviteCode)
-    local url = InviteAPI .. inviteCode .. "?with_counts=true"
-    local success, response = pcall(function()
-        return game:HttpGet(url)
-    end)
-
-    if success then
-        local data = HttpService:JSONDecode(response)
-        return {
-            name = data.guild and data.guild.name or "Unknown",
-            id = data.guild and data.guild.id or "Unknown",
-            online = data.approximate_presence_count or 0,
-            members = data.approximate_member_count or 0,
-            icon = data.guild and data.guild.icon
-                and "https://cdn.discordapp.com/icons/"..data.guild.id.."/"..data.guild.icon..".png"
-                or "",
-        }
-    else
-        warn("Gagal mendapatkan data invite.")
-        return nil
-    end
-end
-
-local	inviteCode = "vf5nUduRxq"
-local inviteData = LookupDiscordInvite(inviteCode)
-
-if inviteData then
-    Home:Paragraph({
-        Title = string.format("[DISCORD] %s", inviteData.name),
-        Desc = string.format("Members: %d\nOnline: %d", inviteData.members, inviteData.online),
-        Image = inviteData.icon,
-        ImageSize = 50,
-        Locked = true,
-    })
-else
-    warn("Invite tidak valid.")
-end
-
-local GitHubAPI = "https://api.github.com/users/"
-
-local function LookupGitHubUser(username)
-    local url = GitHubAPI .. username
-    local success, response = pcall(function()
-        return game:HttpGet(url)
-    end)
-
-    if success then
-        local data = HttpService:JSONDecode(response)
-        return {
-            login = data.login or username,
-            name = data.name or "No Name",
-            bio = data.bio or "No bio available",
-            followers = data.followers or 0,
-            following = data.following or 0,
-            repos = data.public_repos or 0,
-            avatar = data.avatar_url or "",
-            html_url = data.html_url or "",
-        }
-    else
-        warn("Gagal mendapatkan data GitHub.")
-        return nil
-    end
-end
-
-local githubUsername = "ohmygod-king" 
-local githubData = LookupGitHubUser(githubUsername)
-
-if githubData then
-    Home:Paragraph({
-        Title = string.format("[GITHUB] %s", githubData.name),
-        Desc = string.format(
-            "Username: %s\nRepos: %d",
-            githubData.login,
-            githubData.repos
-        ),
-        Image = githubData.avatar,
-        ImageSize = 50,
-        Locked = true,
-    })
-else
-    warn("GitHub user tidak ditemukan.")
-end
-
 if getgenv().AutoRejoinConnection then
     getgenv().AutoRejoinConnection:Disconnect()
     getgenv().AutoRejoinConnection = nil
@@ -415,61 +316,6 @@ getgenv().AutoRejoinConnection = game:GetService("CoreGui").RobloxPromptGui.prom
         TeleportService:Teleport(game.PlaceId, Player)
     end
 end)
-
--------------------------------------------  
------ =======[ SERVER PAGE TAB ]  
--------------------------------------------
-
-_G.ServerList = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Private?sortOrder=Asc&limit=100"))
-
-_G.ButtonList = {}
-
-_G.ServerListAll = _G.ServerPage:Section({
-	Title = "All Server List",
-	TextSize = 22,
-	TextXAlignment = "Center"
-})
-
-_G.ShowServersButton = _G.ServerListAll:Button({
-    Title = "Show Server List",
-    Desc = "Klik untuk menampilkan daftar server yang tersedia.",
-    Locked = false,
-    Icon = "",
-    Callback = function()
-        if _G.ServersShown then return end
-        _G.ServersShown = true
-        
-        for _, server in ipairs(_G.ServerList.data) do
-            _G.playerCount = string.format("%d/%d", server.playing, server.maxPlayers)
-            _G.ping = server.ping
-            _G.id = server.id
-        
-            local buttonServer = _G.ServerListAll:Button({
-                Title = "Server",
-                Desc = "Player: " .. tostring(_G.playerCount) .. "\nPing: " .. tostring(_G.ping),
-                Locked = false,
-                Icon = "",
-                Callback = function()
-                    game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, _G.id, game.Players.LocalPlayer)
-                end
-            })
-        
-            buttonServer:SetTitle("Server")
-            buttonServer:SetDesc("Player: " .. tostring(_G.playerCount) .. "\nPing: " .. tostring(_G.ping))
-            
-            table.insert(_G.ButtonList, buttonServer)
-        end
-        
-        if #_G.ButtonList == 0 then
-            _G.ServerListAll:Button({
-                Title = "No Servers Found",
-                Desc = "Tidak ada server yang ditemukan.",
-                Locked = true,
-                Callback = function() end
-            })
-        end
-    end
-})
 
 -------------------------------------------  
 ----- =======[ AUTO FISH TAB ]  
@@ -1982,12 +1828,11 @@ Utils:Toggle({
     Callback = function(state)
         _G.radarEnabled = state
         local success, result = pcall(function()
-            return _G.RFUpdateFishingRadar:InvokeServer(radarEnabled)
+            return _G.RFUpdateFishingRadar:InvokeServer(_G.radarEnabled)
         end)
-
         if success then
-            if radarEnabled then
-                NotifySuccess("Radar" "Enabled")
+            if _G.radarEnabled then
+                NotifySuccess("Radar", "Enabled")
             else
                 NotifySuccess("Radar", "Disabled")
             end
