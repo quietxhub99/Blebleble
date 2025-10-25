@@ -1972,6 +1972,31 @@ myConfig:Register("JumpPower", Jp)
 ----- =======[ UTILITY TAB ]
 -------------------------------------------
 
+_G.RFUpdateFishingRadar = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/UpdateFishingRadar"]
+
+_G.radarEnabled = false
+
+Utils:Toggle({
+    Title = "Fishing Radar",
+    Value = false,
+    Callback = function(state)
+        _G.radarEnabled = state
+        local success, result = pcall(function()
+            return _G.RFUpdateFishingRadar:InvokeServer(radarEnabled)
+        end)
+
+        if success then
+            if radarEnabled then
+                NotifySuccess("Radar" "Enabled")
+            else
+                NotifySuccess("Radar", "Disabled")
+            end
+        else
+            warn("[⚠️] Gagal memperbarui status radar:", result)
+        end
+    end
+})
+
 
 local islandCoords = {
 	["01"] = { name = "Weather Machine", position = Vector3.new(-1471, -3, 1929) },
