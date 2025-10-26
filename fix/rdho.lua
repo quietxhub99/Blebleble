@@ -525,13 +525,13 @@ end)
     					repeat task.wait(0.5)
     					until not FuncAutoFish.autofish5x
     
-    					task.wait(3)
+    					task.wait(0.5)
     					StartAutoFish5X()
     					FuncAutoFish.CatchLast5x = tick()
     					NotifySuccess("Auto Fish", "Restarted successfully")
     				end
     			else
-    				task.wait(2)
+    				task.wait(0.5)
     			end
     		end
     	end)
@@ -1177,7 +1177,12 @@ end
 
 task.spawn(monitorAutoTP)
 
-local isAutoFarmRunning = true
+local isAutoFarmRunning = false
+local fishCount = 0
+local fishLimit = 10
+local currentIslandIndex = 1
+local currentSpotIndex = 0
+local REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
 
 local islandCodes = {
     ["01"] = "Crater Islands",
@@ -1281,45 +1286,6 @@ local farmLocations = {
     }
 }
 
-local function startAutoFarmLoop()
-    NotifySuccess("Auto Farm Enabled", "Fishing started on island: " .. _G.selectedIsland)
-
-    while isAutoFarmRunning do  
-        local islandSpots = farmLocations[_G.selectedIsland]  
-        if type(islandSpots) == "table" and #islandSpots > 0 then  
-            location = islandSpots[math.random(1, #islandSpots)]  
-        else  
-            location = islandSpots  
-        end  
-
-        if not location then  
-            NotifyError("Invalid Island", "Selected island name not found.")  
-            return  
-        end  
-
-        local char = workspace:FindFirstChild("Characters"):FindFirstChild(LocalPlayer.Name)  
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")  
-        if not hrp then  
-            NotifyError("Teleport Failed", "HumanoidRootPart not found.")  
-            return  
-        end  
-
-        hrp.CFrame = location  
-        task.wait(1.5)  
-
-        StartAutoFish5X()
-        
-        while isAutoFarmRunning do
-            if not isAutoFarmRunning then  
-                StopAutoFish5X()  
-                NotifyWarning("Auto Farm Stopped", "Auto Farm manually disabled. Auto Fish stopped.")  
-                break  
-            end  
-            task.wait(0.5)
-        end
-    end
-end
-
 local nameList = {}
 local islandNamesToCode = {}
 
@@ -1330,38 +1296,181 @@ end
 
 table.sort(nameList)
 
+_G.selectedIslands = {}
+-------------------------------------------
+----- =======[ FISH COUNTING & TELEPORT LOGIC ]
+-------------------------------------------
+
+-- 1. Listener untuk menghitung ikan
+REObtainedNewFishNotification.OnClientEvent:Connect(function()
+    if isAutoFarmRunning then
+        fishCount = fishCount + 1
+    end
+end)
+
+-- 2. Fungsi untuk berpindah ke spot/pulau berikutnya
+local function teleportToNextSpot(forceNextIsland)
+    if not _G.selectedIslands or #_G.selectedIslands == 0 then
+        NotifyError("Farm Error", "No target islands selected for rotation.")
+        isAutoFarmRunning = false
+        return false
+    end
+
+    local currentIslandName = _G.selectedIslands[currentIslandIndex]
+    local islandSpots = farmLocations[currentIslandName]
+
+    if not islandSpots or #islandSpots == 0 then
+        NotifyError("Farm Error", "No spots found for island: " .. currentIslandName)
+        isAutoFarmRunning = false
+        return false
+    end
+
+    -- Jika limit island tercapai, pindah ke island lain, bukan spot berikutnya
+    if forceNextIsland then
+        currentIslandIndex = currentIslandIndex + 1
+        if currentIslandIndex > #_G.selectedIslands then
+            currentIslandIndex = 1 -- Reset ke awal daftar island
+        end
+        currentIslandName = _G.selectedIslands[currentIslandIndex]
+        islandSpots = farmLocations[currentIslandName]
+        NotifyWarning("Island Rotation", "Switching to: " .. currentIslandName)
+        StartAutoFish5X()
+    end
+
+    -- Pilih spot acak di island baru
+    currentSpotIndex = math.random(1, #islandSpots)
+    local location = islandSpots[currentSpotIndex]
+
+    local char = workspace:FindFirstChild("Characters"):FindFirstChild(LocalPlayer.Name)
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.CFrame = location
+        NotifySuccess("Teleport Success",
+            string.format("Farming %s | Spot %d/%d (Limit: %d Catches)",
+                currentIslandName, currentSpotIndex, #islandSpots, fishLimit
+            )
+        )
+        return true
+    else
+        NotifyError("Teleport Failed", "HumanoidRootPart not found.")
+        isAutoFarmRunning = false
+        return false
+    end
+end
+
+-- 3. Loop utama Auto Farm
+local function startAutoFarmLoop()
+    if not _G.selectedIslands or #_G.selectedIslands == 0 then
+        NotifyError("Auto Farm Disabled", "Please select at least one island for rotation.")
+        isAutoFarmRunning = false
+        return
+    end
+
+    NotifySuccess("Auto Farm Enabled",
+        string.format("Starting auto farm rotation across %d islands (Limit: %d catches).", #_G.selectedIslands, fishLimit)
+    )
+
+    -- Reset indeks dan hitungan awal
+    currentIslandIndex = 1
+    currentSpotIndex = 0
+    fishCount = 0
+
+    while isAutoFarmRunning do
+        -- 1. Teleport ke island saat ini (spot acak)
+        local success = teleportToNextSpot(false)
+        if not success then
+            StopAutoFish5X()
+            isAutoFarmRunning = false
+            break
+        end
+        task.wait(1.5)
+
+        -- 2. Start Fishing
+        StartAutoFish5X()
+        fishCount = 0 -- Reset count untuk spot baru
+
+        -- 3. Tunggu hingga batas tangkapan tercapai atau farm dinonaktifkan
+        while isAutoFarmRunning and fishCount < fishLimit do
+            task.wait(0.5)
+        end
+
+        -- 4. Stop Fishing sebelum teleport berikutnya
+        StopAutoFish5X()
+
+        if not isAutoFarmRunning then
+            NotifyWarning("Auto Farm Stopped", "Auto Farm manually disabled. Auto Fish stopped.")
+            break
+        end
+
+        -- 5. Jika limit tercapai, pindah ke island lain
+        NotifyWarning("Limit Reached", string.format("Caught %d fish. Rotating to next island...", fishLimit))
+        task.wait(1)
+
+        teleportToNextSpot(true) -- Force pindah ke island berikutnya
+    end
+end
+
+-------------------------------------------
+----- =======[ UI DEFINITION MODIFIED ]
+-------------------------------------------
+
 AutoFarmTab:Section({
 	Title = "Auto Farming Menu",
 	TextSize = 22,
 	TextXAlignment = "Center",
 })
 
+-- MODIFIKASI: Ganti Dropdown lama menjadi Multi-Dropdown
 local CodeIsland = AutoFarmTab:Dropdown({
-    Title = "Farm Island",
+    Title = "Farm Islands (Rotation)",
+    Desc = "Select multiple islands to rotate between based on the catch limit.",
     Values = nameList,
-    Value = nameList[9],
-    Callback = function(selectedName)
-        local code = islandNamesToCode[selectedName]
-        local islandName = islandCodes[code]
-        if islandName and farmLocations[islandName] then
-            _G.selectedIsland = islandName
-            NotifySuccess("Island Selected", "Farming location set to " .. islandName)
+    Multi = true,
+    Default = {nameList[1]}, 
+    Callback = function(selectedNames)
+        _G.selectedIslands = selectedNames -- Simpan sebagai array of names
+        if #selectedNames > 0 then
+            NotifySuccess("Islands Selected", "Rotation set for: " .. table.concat(selectedNames, ", "))
+            -- Reset indeks rotasi saat pulau berubah
+            currentIslandIndex = 1
+            currentSpotIndex = 0
         else
-            NotifyError("Invalid Selection", "The island name is not recognized.")
+            NotifyError("Selection Error", "Please select at least one island.")
         end
     end
 })
 
 myConfig:Register("IslCode", CodeIsland)
 
+-- BARU: Slider untuk Batas Ikan
+local FishLimitSlider = AutoFarmTab:Slider({
+    Title = "Fish Catch Limit",
+    Desc = "Number of fish to catch before rotating spot/island.",
+    Step = 1,
+    Value = {
+    	Min = 1,
+	    Max = 6000,
+	    Default = 10,
+    },
+    Callback = function(value)
+        fishLimit = math.floor(value)
+        NotifySuccess("Limit Set", "New catch limit set to: " .. fishLimit)
+    end
+})
+
+myConfig:Register("FishLimit", FishLimitSlider)
+
+
 local AutoFarm = AutoFarmTab:Toggle({
-	Title = "Start Auto Farm",
+	Title = "Start Auto Farm Rotation",
+    Desc = "Starts auto-fishing and rotates spot/island after catching the set limit.",
 	Callback = function(state)
 		isAutoFarmRunning = state
 		if state then
 			startAutoFarmLoop()
 		else
-			StopAutoFish()
+			StopAutoFish5X()
+            NotifyWarning("Auto Farm Stopped", "Rotation stopped manually.")
 		end
 	end
 })
