@@ -673,7 +673,7 @@ _G.FishSec:Toggle({
 _G.REReplicateCutscene.OnClientEvent:Connect(function(rarity, player, position, fishName, data)
     if _G.BlockCutsceneEnabled then
         print("[QuietX] Cutscene diblokir:", fishName, "(Rarity:", rarity .. ")")
-        return -- blokir event agar tidak muncul cutscene
+        return nil
     end
 end)
 
