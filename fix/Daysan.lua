@@ -1887,10 +1887,6 @@ local WeatherDropdown = Utils:Dropdown({
     Multi = true,
     AllowNone = true,
     Callback = function(selected)
-    	  if Notifs.WBN then
-    	  	Notifs.WBN = false
-    	  	return
-    	  end
         for weatherType, active in pairs(weatherActive) do
             if active and not table.find(selected, weatherType) then
                 weatherActive[weatherType] = false
