@@ -1822,6 +1822,71 @@ myConfig:Register("JumpPower", Jp)
 ----- =======[ UTILITY TAB ]
 -------------------------------------------
 
+local weatherActive = {}
+local weatherData = {
+    ["Storm"] = { duration = 900 },
+    ["Cloudy"] = { duration = 900 },
+    ["Snow"] = { duration = 900 },
+    ["Wind"] = { duration = 900 },
+    ["Radiant"] = { duration = 900 }
+}
+
+local function randomDelay(min, max)
+    return math.random(min * 100, max * 100) / 100
+end
+
+local function autoBuyWeather(weatherType)
+    local purchaseRemote = ReplicatedStorage:WaitForChild("Packages")
+        :WaitForChild("_Index")
+        :WaitForChild("sleitnick_net@0.2.0")
+        :WaitForChild("net")
+        :WaitForChild("RF/PurchaseWeatherEvent")
+
+    task.spawn(function()
+        while weatherActive[weatherType] do
+            pcall(function()
+                purchaseRemote:InvokeServer(weatherType)
+                NotifySuccess("Weather Purchased", "Successfully activated " .. weatherType)
+
+                task.wait(weatherData[weatherType].duration)
+
+                local randomWait = randomDelay(1, 5)
+                NotifyInfo("Waiting...", "Delay before next purchase: " .. tostring(randomWait) .. "s")
+                task.wait(randomWait)
+            end)
+        end
+    end)
+end
+
+local WeatherDropdown = Utils:Dropdown({
+    Title = "Auto Buy Weather",
+    Values = { "Storm", "Cloudy", "Snow", "Wind", "Radiant" },
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(selected)
+    	  if Notifs.WBN then
+    	  	Notifs.WBN = false
+    	  	return
+    	  end
+        for weatherType, active in pairs(weatherActive) do
+            if active and not table.find(selected, weatherType) then
+                weatherActive[weatherType] = false
+                NotifyWarning("Auto Weather", "Auto buying " .. weatherType .. " has been stopped.")
+            end
+        end
+        for _, weatherType in pairs(selected) do
+            if not weatherActive[weatherType] then
+                weatherActive[weatherType] = true
+                NotifyInfo("Auto Weather", "Auto buying " .. weatherType .. " has started!")
+                autoBuyWeather(weatherType)
+            end
+        end
+    end
+})
+
+myConfig:Register("WeatherDropdown", WeatherDropdown)
+
 _G.RFUpdateFishingRadar = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/UpdateFishingRadar"]
 
 _G.radarEnabled = false
