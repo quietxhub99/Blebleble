@@ -317,7 +317,6 @@ getgenv().AutoRejoinConnection = game:GetService("CoreGui").RobloxPromptGui.prom
     end
 end)
 
--------------------------------------------  
     -------------------------------------------  
     ----- =======[ AUTO FISH TAB ]  
     -------------------------------------------
@@ -329,6 +328,7 @@ end)
     
     _G.StopFishing = function()
         _G.RFCancelFishingInputs:InvokeServer()
+        firesignal(_G.REFishingStopped.OnClientEvent)
     end
     
     local FuncAutoFish = {
@@ -362,7 +362,7 @@ end)
     local function monitorFishThreshold5X()
     	task.spawn(function()
     		while FuncAutoFish.autofish5x do
-    			if #obtainedFishUUIDs >= obtainedLimit then
+    			if #obtainedFishUUIDs >= tonumber(obtainedLimit) then
     				NotifyInfo("Fish Threshold Reached", "Selling all fishes...")
     				sellItems()
     				task.wait(0.5)
@@ -383,6 +383,8 @@ end)
     _G.lastRecastTime = 0
     _G.DELAY_ANTISTUCK = 10
     _G.RECAST_DELAY = 0.9
+    
+    _G.isRecasting5x = false
     
     
     function _G.startSpam()
@@ -412,76 +414,79 @@ end)
     	end
     end)
     
-    _G.REFishCaught.OnClientEvent:Connect(function(fishName, info)
-    	_G.stopSpam()
-    end)
-    
     
     _G.REFishCaught.OnClientEvent:Connect(function(fishName, info)
+        _G.stopSpam()
     	FuncAutoFish.lastCatchTime5x = tick()
     	FuncAutoFish.CatchLast5x = tick()	
         
     	if FuncAutoFish.autofish5x then
     		task.defer(function()
-    			StartCast5X()
+    		    task.defer(StartCast5X)
     		end)
     	end
     end)
     
-    _G.REPlayFishingEffect.OnClientEvent:Connect(function(player, head, type)
-        if FuncAutoFish.autofish5x and player == Players.LocalPlayer then
-            
-            task.spawn(function() 
-    
-                if tick() < _G.lastRecastTime + _G.COOLDOWN_SECONDS then
-                    return 
-                end
-                
-                _G.lastRecastTime = tick()
-              
-                
-                task.wait(_G.RECAST_DELAY)
-                StopCast()
-                task.defer(StartCast5X)
-    
-            end)
-        end
-    end)
     
     
-    
-    
-    function StartCast5X()
-        task.spawn(function()
-            local timestamp = workspace:GetServerTimeNow()
-            
-            _G.chargeRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]
-            
-            local x, y
-            local baseX, baseY = -0.7499996423721313, 1
-            
-            if FuncAutoFish.perfectCast5x then
-                x, y = baseX, baseY
-            else
-                x = math.random(-1000, 1000) / 1000
-                y = math.random(0, 1000) / 1000
-            end
-            
-            for i = 1, 7 do
-                _G.chargeRemote:InvokeServer(timestamp)
-               task.wait(0.05) 
-            end
-            RodShake:Play()
-            
-            task.wait(0.05)
-    
-            for i = 1, 7 do
-                miniGameRemote:InvokeServer(x, y)
-                task.wait(0.05)
-            end
-            RodIdle:Play()
-        end)
+   _G.REPlayFishingEffect.OnClientEvent:Connect(function(player, head, type)
+    if not (FuncAutoFish.autofish5x and player == Players.LocalPlayer) then
+        return
     end
+    
+    task.spawn(function() 
+        
+        if _G.isRecasting5x then 
+            return 
+        end
+        
+        local currentTime = tick()
+        local requiredTime = _G.lastRecastTime + (_G.COOLDOWN_SECONDS) 
+        if currentTime < requiredTime then
+            return
+        end
+        _G.isRecasting5x = true 
+        
+        _G.lastRecastTime = currentTime 
+        
+        task.wait(_G.RECAST_DELAY) 
+        StopCast()
+        task.wait(0.05)
+        task.defer(StartCast5X)
+        _G.isRecasting5x = false 
+        
+    end)
+end)
+    
+    
+    
+    
+function StartCast5X()
+	local timestamp = workspace:GetServerTimeNow()
+	_G.chargeRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/ChargeFishingRod"]
+	
+	for i = 1, 2 do
+	    _G.chargeRemote:InvokeServer(timestamp)
+	    task.wait(0.05)
+	    rodRemote:InvokeServer(timestamp)
+	end
+	RodShake:Play()
+	
+	task.wait(0.05)
+	local baseX, baseY = -1.233184814453125, 0.9857385225731199
+	local x, y
+	if FuncAutoFish.perfectCast5x then
+		x, y = baseX, baseY
+	else
+		x = math.random(-1000, 1000) / 1000
+		y = math.random(0, 1000) / 1000
+	end
+	RodIdle:Play()
+	for i = 1, 2 do
+	    miniGameRemote:InvokeServer(x, y)
+	    task.wait(0)
+	end
+end
     
     function StopCast()
     	_G.StopFishing()
@@ -490,9 +495,8 @@ end)
     
     function StartAutoFish5X()
     	FuncAutoFish.autofish5x = true
-    	updateDelayBasedOnRod = true
+    	FuncAutoFish.CatchLast5x = tick()
     	monitorFishThreshold5X()
-    	_G.lastRecastTime = tick()
     	_G.equipRemote:FireServer(1)
     	task.wait(0.05)
     	StartCast5X()
@@ -503,44 +507,44 @@ end)
     	FuncAutoFish.autofish5x = false
     	FuncAutoFish.delayInitialized = false
     	_G.StopFishing()
+    	_G.isRecasting5x = false
     	StopAutoFishMonitor5x()
     end
     
-    
-    
-    _G.AutoFishMonitor5x = _G.AutoFishMonitor5x or { Running = false }
-    
-    function StartAutoFishMonitor5x()
-    	if _G.AutoFishMonitor5x.Running then return end
-    	_G.AutoFishMonitor5x.Running = true
-    
-    	task.spawn(function()
-    		while _G.AutoFishMonitor5x.Running do
-    			task.wait(1)
-    
-    			if FuncAutoFish and FuncAutoFish.autofish5x then
-    				local idle = tick() - (FuncAutoFish.CatchLast5x or tick())
-    				if idle >= _G.DELAY_ANTISTUCK then
-    					NotifyWarning("Auto Fish", string.format("No fish caught for %.0f seconds, restarting...", idle))
-    					StopAutoFish5X()
-    					repeat task.wait(0.5)
-    					until not FuncAutoFish.autofish5x
-    
-    					task.wait(3)
-    					StartAutoFish5X()
-    					FuncAutoFish.CatchLast5x = tick()
-    					NotifySuccess("Auto Fish", "Restarted successfully")
-    				end
-    			else
-    				task.wait(2)
-    			end
-    		end
-    	end)
-    end
-    
-    function StopAutoFishMonitor5x()
-    	_G.AutoFishMonitor5x.Running = false
-    end
+
+
+_G.AutoFishMonitor5x = _G.AutoFishMonitor5x or { Running = false }
+
+function StartAutoFishMonitor5x()
+	if _G.AutoFishMonitor5x.Running then return end
+	_G.AutoFishMonitor5x.Running = true
+
+	task.spawn(function()
+		while _G.AutoFishMonitor5x.Running do
+			task.wait(0.05)
+
+			if FuncAutoFish and FuncAutoFish.autofish5x then
+				local stuckThreshold = tonumber(_G.DELAY_ANTISTUCK) or 10 
+				local idle = tick() - (FuncAutoFish.CatchLast5x or tick())
+                
+				if idle >= stuckThreshold then
+					StopAutoFish5X()
+					
+					repeat task.wait(0.5)
+					until not FuncAutoFish.autofish5x
+					task.wait(0.05)
+					StartAutoFish5X()
+					FuncAutoFish.CatchLast5x = tick()
+				end
+			end
+            task.wait(0.05)
+		end
+	end)
+end
+
+function StopAutoFishMonitor5x()
+	_G.AutoFishMonitor5x.Running = false
+end
     
     _G.FishSec = AutoFish:Section({
     	Title = "Auto Fishing 5X Speed",
@@ -553,8 +557,8 @@ end)
         Title = "Recast Cooldown",
         Step = 1,
         Value = {
-            Min = 5,
-            Max = 100000000000,
+            Min = 1,
+            Max = 1000,
             Default = _G.COOLDOWN_SECONDS,
         },
         Callback = function(value)
@@ -568,12 +572,12 @@ end)
         Title = "Recast Delay",
         Step = 0.1,
         Value = {
-            Min = 0.5,
-            Max = 100000000,
+            Min = 0.1,
+            Max = 1000,
             Default = _G.RECAST_DELAY,
         },
         Callback = function(value)
-            _G.RECAST_DELAY_V2 = value
+            _G.RECAST_DELAY = value
         end
     })
     
@@ -584,7 +588,7 @@ end)
         Step = 1,
         Value = {
             Min = 1,
-            Max = 100,
+            Max = 1000,
             Default = _G.DELAY_ANTISTUCK,
         },
         Callback = function(value)
@@ -592,68 +596,87 @@ end)
         end
     })
 
-_G.BNSell = true
-local FishThres = _G.FishSec:Input({
-	Title = "Sell Threshold",
-	Placeholder = "Example: 1500",
-	Callback = function(value)
-	  if _G.BNSell then
-			_G.BNSell = false
-			return
-		end	
-		local number = tonumber(value)
-		if number then
-			obtainedLimit = number
-			NotifySuccess("Threshold Set", "Fish threshold set to " .. number)
-		else
-			NotifyError("Invalid Input", "Failed to convert input to number.")
-		end
-	end,
-})
-
-myConfig:Register("FishThreshold", FishThres)
-
-_G.AutoFishes = _G.FishSec:Toggle({
-	Title = "Auto Fish",
-	Callback = function(value)
-		if value then
-			StartAutoFish5X()
-		else
-			StopAutoFish5X()
-		end
-	end
-})
-
-myConfig:Register("AutoFish", _G.AutoFishes)
-
-_G.FishSec:Space()
-
-_G.REReplicateCutscene = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateCutscene"]
-
-_G.FishSec:Space()
-
-_G.FishSec:Button({
-    Title = "Stop Fishing",
-    Locked = false,
-    Justify = "Center",
-    Icon = "",
-    Callback = function()
-        _G.StopFishing()
-        RodIdle:Stop()
-        RodIdle:Stop()
-    end
-})
-
-_G.FishSec:Space()
-
-local PerfectCast = _G.FishSec:Toggle({
+myConfig:Register("AntiStuck", _G.Delay5X)
+    
+    
+   _G.FishThres = _G.FishSec:Slider({
+    	Title = "Sell Threshold",
+    	Stel = 1,
+    	Value = {
+    	    Min = 1,
+    	    Max = 6000,
+    	    Default = obtainedLimit,
+    	},
+    	Callback = function(value)
+    		obtainedLimit = value
+    	end
+    })
+    
+    myConfig:Register("FishThreshold", FishThres)
+    
+    _G.AutoFishes = _G.FishSec:Toggle({
+    	Title = "Auto Fish",
+    	Callback = function(value)
+    		if value then
+    			StartAutoFish5X()
+    		else
+    			StopAutoFish5X()
+    		end
+    	end
+    })
+    
+    
+    myConfig:Register("AutoFish", _G.AutoFishes)
+    
+    _G.FishSec:Space()
+    
+    local PerfectCast = _G.FishSec:Toggle({
     Title = "Auto Perfect Cast",
     Value = true,
     Callback = function(value)
-        FuncAutoFish.perfectCast = value
+        FuncAutoFish.perfectCast5x = value
     end
 })
+
 myConfig:Register("Prefect", PerfectCast)
+
+_G.FishSec:Space()
+
+    
+    _G.FishSec:Button({
+        Title = "Stop Fishing",
+        Locked = false,
+        Justify = "Center",
+        Icon = "",
+        Callback = function()
+            _G.StopFishing()
+            RodIdle:Stop()
+            RodIdle:Stop()
+        end
+    })
+    
+    _G.FishSec:Space()
+    
+
+_G.REReplicateCutscene = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateCutscene"]
+_G.BlockCutsceneEnabled = false
+
+
+_G.FishSec:Toggle({
+    Title = "Block Cutscene",
+    Value = false,
+    Callback = function(state)
+        _G.BlockCutsceneEnabled = state
+        print("Block Cutscene: " .. tostring(state))
+    end
+})
+
+_G.REReplicateCutscene.OnClientEvent:Connect(function(rarity, player, position, fishName, data)
+    if _G.BlockCutsceneEnabled then
+        print("[QuietX] Cutscene diblokir:", fishName, "(Rarity:", rarity .. ")")
+        return nil -- blokir event agar tidak muncul cutscene
+    end
+end)
 
 local REEquipItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipItem"]
 local RFSellItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellItem"]
