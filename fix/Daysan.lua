@@ -339,39 +339,38 @@ end)
     	delayInitialized = false,
     	lastCatchTime5x = 0,
     	CatchLast = tick(),
-    	sellThreesold = true
     }
     
-    local obtainedFishUUIDs = {}
-    local obtainedLimit = 30
-    
-    
-    local RemoteFish = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
-    RemoteFish.OnClientEvent:Connect(function(_, _, data)
-    	if data and data.InventoryItem and data.InventoryItem.UUID then
-    		table.insert(obtainedFishUUIDs, data.InventoryItem.UUID)
-    	end
-    end)
-    
-    local function sellItems()
-    	if #obtainedFishUUIDs > 0 then
-    		ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellAllItems"]:InvokeServer()
-    	end
-    	obtainedFishUUIDs = {}
-    end
-    
-    local function monitorFishThreshold5X()
-    	task.spawn(function()
-    		while FuncAutoFish.sellThreesold do
-    			if #obtainedFishUUIDs >= tonumber(obtainedLimit) then
-    				NotifyInfo("Fish Threshold Reached", "Selling all fishes...")
-    				sellItems()
-    				task.wait(0.5)
-    			end
-    			task.wait(0.5)
-    		end
-    	end)
-    end
+    _G.obtainedFishUUIDs = {}
+_G.obtainedLimit = 30
+_G.sellActive = false
+
+_G.RemotePackage = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
+_G.RemoteFish = _G.RemotePackage["RE/ObtainedNewFishNotification"]
+_G.RemoteSell = _G.RemotePackage["RF/SellAllItems"]
+
+_G.RemoteFish.OnClientEvent:Connect(function(_, _, data)
+	if _G.sellActive and data and data.InventoryItem and data.InventoryItem.UUID then
+		table.insert(_G.obtainedFishUUIDs, data.InventoryItem.UUID)
+	end
+end)
+
+local function sellItems()
+	if #_G.obtainedFishUUIDs > 0 then
+		_G.RemoteSell:InvokeServer()
+		print("[Auto Sell] Selling all fishes (" .. tostring(#_G.obtainedFishUUIDs) .. ")")
+	end
+	_G.obtainedFishUUIDs = {}
+end
+
+task.spawn(function()
+	while task.wait(0.5) do
+		if _G.sellActive and #_G.obtainedFishUUIDs >= tonumber(_G.obtainedLimit) then
+			sellItems()
+			task.wait(0.5)
+		end
+	end
+end)
     
     
     _G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
@@ -634,20 +633,31 @@ end
     })
     
     
-   _G.FishThres = _G.FishSec:Slider({
-    	Title = "Sell Threshold",
-    	Stel = 1,
-    	Value = {
-    	    Min = 1,
-    	    Max = 6000,
-    	    Default = obtainedLimit,
-    	},
-    	Callback = function(value)
-    		obtainedLimit = value
-    	end
-    })
+_G.FishSec:Slider({
+	Title = "Sell Threshold",
+	Step = 1,
+	Value = {
+		Min = 1,
+		Max = 6000,
+		Default = 30,
+	},
+	Callback = function(value)
+		_G.obtainedLimit = value
+	end
+})
     
-    myConfig:Register("FishThreshold", FishThres)
+_G.FishSec:Toggle({
+	Title = "Auto Sell",
+	Value = false,
+	Callback = function(state)
+		_G.sellActive = state
+		if state then
+			NotifySuccess("Auto Sell", "Limit: " .. _G.obtainedLimit)
+		else
+			NotifySuccess("Auto Sell", "Disabled")
+		end
+	end
+})
     
     _G.AutoFishes = _G.FishSec:Toggle({
     	Title = "Auto Fish",
