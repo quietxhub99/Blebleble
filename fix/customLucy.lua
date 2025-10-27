@@ -1544,11 +1544,11 @@ local function startAutoFarmLoop()
         hrp.CFrame = location  
         task.wait(1.5)  
 
-        StartAutoFish()
+        _G.ToggleAutoClick(true)
         
         while isAutoFarmRunning do
             if not isAutoFarmRunning then  
-                StopAutoFish()  
+                _G.ToggleAutoClick(false)  
                 NotifyWarning("Auto Farm Stopped", "Auto Farm manually disabled. Auto Fish stopped.")  
                 break  
             end  
