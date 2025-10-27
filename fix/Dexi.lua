@@ -124,23 +124,22 @@ end
 -------------------------------------------
 
 WindUI:AddTheme({
-    Name = "Blue Ocean",
+    Name = "Deep Sea Dawn",
     Accent = WindUI:Gradient({
-        ["0"]   = { Color = Color3.fromHex("#5CC6FF"), Transparency = 0 },
-        ["100"] = { Color = Color3.fromHex("#004E92"), Transparency = 0 },
+        ["0"]   = { Color = Color3.fromHex("#FFC700"), Transparency = 0 },  -- Cahaya Fajar/Emas Ikan
+        ["100"] = { Color = Color3.fromHex("#00BFFF"), Transparency = 0 },  -- Biru Langit Cerah
     }, {
-        Rotation = 90,
+        Rotation = 45,
     }),
-    Dialog = Color3.fromHex("#0B1E3F"),
-    Outline = Color3.fromHex("#D0E7FF"),
-    Text = Color3.fromHex("#E6F4FF"),
-    Placeholder = Color3.fromHex("#94AFCB"),
-    Background = Color3.fromHex("#0A192F"),
-    Button = Color3.fromHex("#1E81CE"),
-    Icon = Color3.fromHex("#B5DCFF")
+    Dialog = Color3.fromHex("#082A4D"),         -- Biru Tua Dalam
+    Outline = Color3.fromHex("#9BCFFF"),        -- Refleksi Air Laut
+    Text = Color3.fromHex("#E0F4FF"),           -- Putih Awan
+    Placeholder = Color3.fromHex("#5B8CA3"),    -- Bayangan di Kedalaman
+    Background = Color3.fromHex("#051930"),     -- Dasar Laut yang Gelap
+    Button = Color3.fromHex("#176FA8"),         -- Biru Laut Menengah
+    Icon = Color3.fromHex("#FFD75F")            -- Emas Ikan
 })
-
-WindUI.TransparencyValue = 0.3
+WindUI.TransparencyValue = 0.5
 
 local Window = WindUI:CreateWindow({
     Title = "Fish It",
@@ -149,7 +148,7 @@ local Window = WindUI:CreateWindow({
     Folder = "QuietXHub",
     Size = UDim2.fromOffset(600, 400),
     Transparent = true,
-    Theme = "Blue Ocean",
+    Theme = "Deep Sea Dawn",
     KeySystem = false,
     ScrollBarEnabled = true,
     HideSearchBar = true,
