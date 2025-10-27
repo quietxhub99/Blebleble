@@ -1382,7 +1382,7 @@ local function teleportToNextSpot(forceNextIsland)
         currentIslandName = _G.selectedIslands[currentIslandIndex]
         islandSpots = farmLocations[currentIslandName]
         NotifyWarning("Island Rotation", "Switching to: " .. currentIslandName)
-        StartAutoFish5X()
+        _G.ToggleAutoClick(true)
     end
 
     -- Pilih spot acak di island baru
@@ -1427,14 +1427,14 @@ local function startAutoFarmLoop()
         -- 1. Teleport ke island saat ini (spot acak)
         local success = teleportToNextSpot(false)
         if not success then
-            StopAutoFish5X()
+            _G.ToggleAutoClick(false)
             isAutoFarmRunning = false
             break
         end
         task.wait(1.5)
 
         -- 2. Start Fishing
-        StartAutoFish5X()
+        _G.ToggleAutoClick(true)
         fishCount = 0 -- Reset count untuk spot baru
 
         -- 3. Tunggu hingga batas tangkapan tercapai atau farm dinonaktifkan
@@ -1443,7 +1443,7 @@ local function startAutoFarmLoop()
         end
 
         -- 4. Stop Fishing sebelum teleport berikutnya
-        StopAutoFish5X()
+        _G.ToggleAutoClick(falss)
 
         if not isAutoFarmRunning then
             NotifyWarning("Auto Farm Stopped", "Auto Farm manually disabled. Auto Fish stopped.")
