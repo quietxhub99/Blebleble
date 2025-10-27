@@ -1259,11 +1259,11 @@ local function startAutoFarmLoop()
         hrp.CFrame = location  
         task.wait(1.5)  
 
-        StartAutoFish5X()
+        _G.ToggleAutoClick(true)
         
         while isAutoFarmRunning do
             if not isAutoFarmRunning then  
-                StopAutoFish5X()  
+                _G.ToggleAutoClick(false)  
                 NotifyWarning("Auto Farm Stopped", "Auto Farm manually disabled. Auto Fish stopped.")  
                 break  
             end  
@@ -1487,7 +1487,7 @@ _G.StartArtifactFarm = function()
     Player.Character:PivotTo(_G.ArtifactSpots["Spot " .. tostring(_G.CurrentSpot)])
     task.wait(1)
 
-    StartAutoFish5X()
+    _G.ToggleAutoClick(true)
     _G.AutoFishStarted = true
 
     _G.ArtifactConnection = REFishCaught.OnClientEvent:Connect(function(fishName, data)
@@ -1518,7 +1518,7 @@ _G.StartArtifactFarm = function()
                 end
             else
                 updateParagraph("Auto Farm Artifact", "All Artifacts collected! Unlocking Temple...")
-                StopAutoFish()
+                _G.ToggleAutoClick(false)
                 task.wait(1.5)
                 if typeof(_G.UnlockTemple) == "function" then
                     _G.UnlockTemple()
