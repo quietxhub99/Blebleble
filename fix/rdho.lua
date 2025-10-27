@@ -643,7 +643,7 @@ _G.FishSec:Slider({
 		Default = 30,
 	},
 	Callback = function(value)
-		obtainedLimit = value
+		_G.obtainedLimit = value
 	end
 })
     
@@ -651,9 +651,9 @@ _G.FishSec:Toggle({
 	Title = "Auto Sell",
 	Value = false,
 	Callback = function(state)
-		sellActive = state
+		_G.sellActive = state
 		if state then
-			NotifySuccess("Auto Sell", "Limit: " .. obtainedLimit)
+			NotifySuccess("Auto Sell", "Limit: " .. _G.obtainedLimit)
 		else
 			NotifySuccess("Auto Sell", "Disabled")
 		end
