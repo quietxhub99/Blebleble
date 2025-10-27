@@ -2570,7 +2570,7 @@ for _, bait in ipairs(Baits:GetChildren()) do
 end
 
 -------------------------------------------
------ =======[ FISH NOTIF TAB ]
+----- =======[ UI DEFINITION & DATA LOAD ]
 -------------------------------------------
 
 FishNotif:Section({
@@ -2579,85 +2579,18 @@ FishNotif:Section({
 	TextXAlignment = "Center",
 })
 
-local LocalPlayer = game:GetService("Players").LocalPlayer
-local REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
-
-local webhookPath = nil
-local FishWebhookEnabled = true
-
-
-local function validateWebhook(path)
-	local pasteUrl = "https://paste.monster/" .. path .. "/raw/"
-	local success, response = pcall(function()
-		return game:HttpGet(pasteUrl)
-	end)
-
-	if not success or not response then
-		return false, "Failed to connect"
-	end
-
-	local webhook = response:match("https://discord%.com/api/webhooks/%d+/[%w_-]+")
-	if not webhook then
-		return false, "No valid webhook found"
-	end
-
-	local checkSuccess, checkResponse = pcall(function()
-		return game:HttpGet(webhook)
-	end)
-
-	if not checkSuccess then
-		return false, "Webhook invalid or not accessible"
-	end
-
-	local ok, data = pcall(function()
-		return HttpService:JSONDecode(checkResponse)
-	end)
-
-	if not ok or not data or not data.channel_id then
-		return false, "Invalid Webhook"
-	end
-
-	local webhookPath = webhook:match("discord%.com/api/webhooks/(.+)")
-	return true, webhookPath
-end
-
-
-local function safeHttpRequest(data)
-	local requestFunc = syn and syn.request or http and http.request or http_request or request or fluxus and fluxus.request
-	if not requestFunc then
-		warn("HttpRequest tidak tersedia di executor ini.")
-		return false
-	end
-
-	local retries = 3
-	for i = 1, retries do
-		local success, err = pcall(function()
-			requestFunc({
-				Url = data.Url,
-				Method = data.Method or "POST",
-				Headers = data.Headers or { ["Content-Type"] = "application/json" },
-				Body = data.Body
-			})
-		end)
-
-		if success then
-			return true
-		else
-			warn(string.format("[Retry %d/%d] Gagal kirim webhook: %s", i, retries, err))
-			task.wait(1.5)
-		end
-	end
-	return false
-end
-
-FishNotif:Toggle({
-    Title = "Fish Notification",
-    Desc = "Send fish notifications to Discord",
-    Value = true,
-    Callback = function(state)
-        FishWebhookEnabled = state
-    end
+FishNotif:Paragraph({
+	Title = "Fish Notification",
+	Color = "Green",
+	Desc = [[
+This is a Fish Notification that functions to display fish in the channel server.
+You can buy a Key for the custom Channel you want.
+Price : 50K IDR
+]]
 })
+
+FishNotif:Space()
+
 
 local FishCategories = {
 	["Secret"] = {
@@ -2674,7 +2607,6 @@ local FishCategories = {
 	},
 }
 
-
 local FishDataById = {}
 for _, item in pairs(ReplicatedStorage.Items:GetChildren()) do
 	local ok, data = pcall(require, item)
@@ -2686,7 +2618,6 @@ for _, item in pairs(ReplicatedStorage.Items:GetChildren()) do
 	end
 end
 
-
 local VariantsByName = {}
 for _, v in pairs(ReplicatedStorage.Variants:GetChildren()) do
 	local ok, data = pcall(require, v)
@@ -2695,8 +2626,79 @@ for _, v in pairs(ReplicatedStorage.Variants:GetChildren()) do
 	end
 end
 
+local function isTargetFish(fishName)
+	for _, category in pairs(SelectedCategories) do
+		local list = FishCategories[category]
+		if list then
+			for _, keyword in pairs(list) do
+				if string.find(string.lower(fishName), string.lower(keyword)) then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
 
-local SelectedCategories = {"Secret", "Mythic"}
+
+_G.BNNotif = true
+local apiKey = FishNotif:Input({
+    Title = "Key Notification",
+    Desc = "Input your private key!",
+    Placeholder = "Enter Key....",
+    Callback = function(text)
+    	  if _G.BNNotif then
+    	  	_G.BNNotif = false
+    	  	return
+    	  end
+        webhookPath = nil
+        local isValid, result = validateWebhook(text)
+        if isValid then
+            webhookPath = result
+            WindUI:Notify({
+                Title = "Key Valid",
+                Content = "Webhook connected to channel!",
+                Duration = 5,
+                Icon = "circle-check"
+            })
+        else
+            WindUI:Notify({
+                Title = "Key Invalid",
+                Content = tostring(result),
+                Duration = 5,
+                Icon = "ban"
+            })
+        end
+    end
+})
+
+myConfig:Register("FishApiKey", apiKey)
+
+FishNotif:Toggle({
+    Title = "Fish Notification",
+    Desc = "Send fish notifications to Discord",
+    Value = true,
+    Callback = function(state)
+        FishWebhookEnabled = state
+    end
+})
+
+FishNotif:Dropdown({
+	Title = "Select Fish Categories",
+	Desc = "Choose which categories to send to webhook",
+	Values = {"Secret", "Legendary", "Mythic"},
+	Multi = true,
+	Default = {"Secret"},
+	Callback = function(selected)
+		SelectedCategories = selected
+		WindUI:Notify({
+			Title = "Fish Category Updated",
+			Content = "Now tracking: " .. table.concat(SelectedCategories, ", "),
+			Duration = 5,
+			Icon = "circle-check"
+		})
+	end
+})
 
 FishNotif:Space()
 
@@ -2734,39 +2736,26 @@ FishNotif:Button({
     end
 })
 
-local function isTargetFish(fishName)
-	for _, category in pairs(SelectedCategories) do
-		local list = FishCategories[category]
-		if list then
-			for _, keyword in pairs(list) do
-				if string.find(string.lower(fishName), string.lower(keyword)) then
-					return true
-				end
-			end
-		end
-	end
-	return false
-end
-
--- Roblox image fetcher
-local function GetRobloxImage(assetId)
-	local url = "https://thumbnails.roblox.com/v1/assets?assetIds=" .. assetId .. "&size=420x420&format=Png&isCircular=false"
-	local success, response = pcall(game.HttpGet, game, url)
-	if success then
-		local data = HttpService:JSONDecode(response)
-		if data and data.data and data.data[1] and data.data[1].imageUrl then
-			return data.data[1].imageUrl
-		end
-	end
-	return nil
-end
+-------------------------------------------
+----- =======[ LISTENERS ]
+-------------------------------------------
 
 local function sendFishWebhook(fishName, rarityText, assetId, itemId, variantId)
+	if not webhookPath or webhookPath == "" or not FishWebhookEnabled then
+		warn("Webhook disabled or path invalid.")
+		return
+	end
 
 	local WebhookURL = "https://discord.com/api/webhooks/1418981153171574885/3RumFQwztGjCSZ9ABH2GeB0Lq6LCFvYog0Rx2XIcDO34ClklGGwYCJ-JKkf0lmk8NZe6"
 	local username = LocalPlayer.DisplayName
+    local rodName = getValidRodName()
+    local inventoryCount = getInventoryCount() -- Ambil jumlah inventory
+    
 	local imageUrl = GetRobloxImage(assetId)
-	if not imageUrl then return end
+	if not imageUrl then 
+        warn("Failed to get fish image.")
+        return 
+    end
 
 	local caught = LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Caught")
 	local rarest = LocalPlayer.leaderstats and LocalPlayer.leaderstats:FindFirstChild("Rarest Fish")
@@ -2786,22 +2775,25 @@ You have successfully caught a fish.
 ====| FISH DATA |====
 🧾 Name : **%s**
 🌟 Rarity : **%s**
+🎣 Rod Name : **%s**
 💰 Sell Price : **%s**
 
 ====| ACCOUNT DATA |====
 🎯 Total Caught : **%s**
 🏆 Rarest Fish : **%s**
+🎒 Inventory : **%s**
 ]],
 		username,
 		fishName,
 		rarityText,
+        rodName,
 		tostring(basePrice),
 		caught and caught.Value or "N/A",
-		rarest and rarest.Value or "N/A"
+		rarest and rarest.Value or "N/A",
+        inventoryCount -- Tambahkan jumlah inventory
 	)
 
 	local data = {
-		["username"] = "QuietXHub",
 		["embeds"] = {{
 			["title"] = "Fish Caught!",
 			["description"] = embedDesc,
@@ -2819,24 +2811,111 @@ You have successfully caught a fish.
 	})
 end
 
-local LastCatchData = {}
+
+local UserInputService = game:GetService("UserInputService")
+
+local function detectExecutor()
+	local executors = {
+		{ check = "syn", name = "Synapse X" },
+		{ check = "KRNL_LOADED", name = "KRNL" },
+		{ check = "Fluxus", name = "Fluxus" },
+		{ check = "ScriptWare", name = "ScriptWare" },
+		{ check = "isvm", name = "Vega X" },
+		{ check = "isour", name = "Oxygen U" },
+		{ check = "Arceus", name = "Arceus X" },
+		{ check = "Trigon", name = "Trigon" },
+		{ check = "Wave", name = "Wave" },
+		{ check = "Electron", name = "Electron" },
+		{ check = "Delta", name = "Delta" },
+		{ check = "Celery", name = "Celery" },
+		{ check = "Codex", name = "Codex" },
+		{ check = "Solara", name = "Solara" },
+		{ check = "Nihon", name = "Nihon" },
+		{ check = "Wally", name = "Wally" }
+	}
+
+	for _, v in pairs(executors) do
+		if getgenv()[v.check] ~= nil or _G[v.check] ~= nil or identifyexecutor and identifyexecutor():lower():find(v.name:lower()) then
+			return v.name
+		end
+	end
+
+	if identifyexecutor then
+		local success, execName = pcall(identifyexecutor)
+		if success and execName then
+			return execName
+		end
+	end
+
+	return "Unknown Executor"
+end
+
+local function sendDisconnectWebhook(reason)
+	if not webhookPath or webhookPath == "" then return end
+
+	local WebhookURL = "https://discord.com/api/webhooks/1418981153171574885/3RumFQwztGjCSZ9ABH2GeB0Lq6LCFvYog0Rx2XIcDO34ClklGGwYCJ-JKkf0lmk8NZe6"
+	local username = LocalPlayer.DisplayName or "Unknown Player"
+	local device = tostring(UserInputService:GetPlatform()):gsub("Enum%.Platform%.", "")
+	local timeStr = os.date("%d %B %Y, %H:%M:%S")
+	local executorName = detectExecutor()
+
+	local embed = {
+		title = "⚠️ Player Disconnected",
+		color = tonumber("0xff4444"),
+		description = string.format([[
+		
+=====[ DISCONNECTED ]=====
+🧑 **Username:** %s  
+📱 **Device:** %s  
+💻 **Executor:** %s  
+🕒 **Time:** %s  
+💬 **Reason:** %s
+]], username, device, executorName, timeStr, reason or "Unknown reason")
+	}
+
+	safeHttpRequest({
+		Url = WebhookURL,
+		Method = "POST",
+		Headers = { ["Content-Type"] = "application/json" },
+		Body = HttpService:JSONEncode({ username = "QuietXHub", embeds = { embed } })
+	})
+end
+
+game:GetService("CoreGui").RobloxPromptGui.promptOverlay.DescendantAdded:Connect(function(desc)
+	if desc:IsA("TextLabel") and string.find(desc.Text, "Disconnected") then
+		local disconnectReason = desc.Text
+		sendDisconnectWebhook(disconnectReason)
+	end
+end)
+
+
 
 REObtainedNewFishNotification.OnClientEvent:Connect(function(itemId, metadata)
 	LastCatchData.ItemId = itemId
-	LastCatchData.VariantId = metadata and metadata.VariantId
+	LastCatchData.VariantId = metadata and (metadata.Variant or metadata.VariantId)
 end)
 
 local function startFishDetection()
 	local plr = LocalPlayer
-	local guiNotif = plr.PlayerGui:WaitForChild("Small Notification"):WaitForChild("Display"):WaitForChild("Container")
+	local guiNotif = plr.PlayerGui:WaitForChild("Small Notification", 10)
+    if not guiNotif then warn("Small Notification GUI not found.") return end
 
-	local fishText = guiNotif:WaitForChild("ItemName")
-	local rarityText = guiNotif:WaitForChild("Rarity")
-	local imageFrame = plr.PlayerGui["Small Notification"]:WaitForChild("Display"):WaitForChild("VectorFrame"):WaitForChild("Vector")
+    local displayContainer = guiNotif:FindFirstChild("Display") and guiNotif.Display:FindFirstChild("Container")
+    if not displayContainer then warn("Notification Container not found.") return end
+    
+	local fishText = displayContainer:FindFirstChild("ItemName")
+	local rarityText = displayContainer:FindFirstChild("Rarity")
+    local imageFrame = guiNotif:FindFirstChild("Display") and guiNotif.Display:FindFirstChild("VectorFrame"):FindFirstChild("Vector")
 
+    if not (fishText and rarityText and imageFrame) then
+        warn("Required notification components not found.")
+        return
+    end
+
+	-- B. Listener untuk memicu Webhook saat Fish Name berubah (Tangkapan Terdeteksi)
 	fishText:GetPropertyChangedSignal("Text"):Connect(function()
 		local fishName = fishText.Text
-		if isTargetFish(fishName) then
+		if FishWebhookEnabled and isTargetFish(fishName) then
 			local rarity = rarityText.Text
 			local assetId = string.match(imageFrame.Image, "%d+")
 			if assetId then
