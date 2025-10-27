@@ -367,7 +367,7 @@ end
 task.spawn(function()
 	while task.wait(0.5) do
 		if _G.sellActive and #_G.obtainedFishUUIDs >= _G.obtainedLimit then
-			_G.sellItems()
+			sellItems()
 			task.wait(0.5)
 		end
 	end
