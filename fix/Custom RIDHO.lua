@@ -156,14 +156,14 @@ local Window = WindUI:CreateWindow({
 
 Window:EditOpenButton({
     Title = "QuietXHub",
-    Icon = "cannabis",
-    CornerRadius = UDim.new(0,16),
+    Icon = "crown",
+    CornerRadius = UDim.new(0, 16),
     StrokeThickness = 2,
-    Color = ColorSequence.new( -- gradient
+    Color = ColorSequence.new(
         Color3.fromHex("9600FF"), 
         Color3.fromHex("AEBAF8")
     ),
-    --Enabled = false,
+    Enabled = true,
     Draggable = true,
 })
 
