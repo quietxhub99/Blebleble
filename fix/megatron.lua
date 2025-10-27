@@ -814,61 +814,6 @@ _G.REReplicateCutscene.OnClientEvent:Connect(function(rarity, player, position, 
     end
 end)
 
-local REEquipItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipItem"]
-local RFSellItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellItem"]
-
-local autoSellMythic = false
-local SMBlockNotif = true
-
-function ToggleAutoSellMythic(state)
-	if SMBlockNotif then
-		SMBlockNotif = false
-		return
-	end
-	autoSellMythic = state
-	if autoSellMythic then
-		NotifySuccess("AutoSellMythic", "Status: ON")
-	else
-		NotifyWarning("AutoSellMythic", "Status: OFF")
-	end
-end
-
-local oldFireServer
-oldFireServer = hookmetamethod(game, "__namecall", function(self, ...)
-	local args = {...}
-	local method = getnamecallmethod()
-
-	if autoSellMythic
-		and method == "FireServer"
-		and self == REEquipItem
-		and typeof(args[1]) == "string"
-		and args[2] == "Fishes" then
-
-		local uuid = args[1]
-
-		task.delay(1, function()
-			pcall(function()
-				local result = RFSellItem:InvokeServer(uuid)
-				if result then
-					NotifySuccess("AutoSellMythic", "Items Sold!!")
-				else
-					NotifyError("AutoSellMythic", "Failed to sell item!!")
-				end
-			end)
-		end)
-	end
-
-	return oldFireServer(self, ...)
-end)
-
-AutoFish:Toggle({
-	Title = "Auto Sell Mythic",
-	Desc = "Automatically sells clicked fish",
-	Default = false,
-	Callback = function(state)
-		ToggleAutoSellMythic(state)
-	end
-})
 
 
 function sellAllFishes()
@@ -1455,11 +1400,11 @@ local function startAutoFarmLoop()
         hrp.CFrame = location  
         task.wait(1.5)  
 
-        StartAutoFish()
+        _G.ToggleAutoClick(true)
         
         while isAutoFarmRunning do
             if not isAutoFarmRunning then  
-                StopAutoFish()  
+                _G.ToggleAutoClick(false)
                 NotifyWarning("Auto Farm Stopped", "Auto Farm manually disabled. Auto Fish stopped.")  
                 break  
             end  
@@ -1600,7 +1545,7 @@ _G.StartArtifactFarm = function()
     Player.Character:PivotTo(_G.ArtifactSpots["Spot " .. tostring(_G.CurrentSpot)])
     task.wait(1)
 
-    StartAutoFish()
+    _G.ToggleAutoClick(true)
     _G.AutoFishStarted = true
 
     _G.ArtifactConnection = REFishCaught.OnClientEvent:Connect(function(fishName, data)
@@ -1631,7 +1576,8 @@ _G.StartArtifactFarm = function()
                 end
             else
                 updateParagraph("Auto Farm Artifact", "All Artifacts collected! Unlocking Temple...")
-                StopAutoFish()
+                _G.ToggleAutoClick(true)
+             
                 task.wait(1.5)
                 if typeof(_G.UnlockTemple) == "function" then
                     _G.UnlockTemple()
