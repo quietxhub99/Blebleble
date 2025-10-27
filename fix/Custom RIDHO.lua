@@ -686,7 +686,7 @@ _G.AutoFishState = {
 
 function _G.performClick()
     _G.FishingController:RequestFishingMinigameClick()
-    task.wait(0.001 + math.random() * 0.001) 
+    task.wait(0.03 + math.random() * 0.03) 
 end
 
 _G.originalAutoFishingStateChanged = _G.AutoFishingController.AutoFishingStateChanged
