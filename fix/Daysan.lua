@@ -463,7 +463,6 @@ end
     function StartAutoFish5X()
     	FuncAutoFish.autofish5x = true
     	FuncAutoFish.CatchLast5x = tick()
-    	monitorFishThreshold5X()
     	_G.equipRemote:FireServer(1)
     	task.wait(0.05)
     	StartCast5X()
