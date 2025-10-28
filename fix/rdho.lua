@@ -2569,9 +2569,15 @@ for _, bait in ipairs(Baits:GetChildren()) do
 	end
 end
 
--------------------------------------------
------ =======[ UI DEFINITION & DATA LOAD ]
--------------------------------------------
+--[[
+    =====================================================================
+    WEBHOOK SCRIPT UPDATE
+    - Added Rod Name detection to Fish Notification.
+    - Added Disconnect Notification webhook.
+    - UPDATED: getValidRodName now uses the specific path structure provided: 
+      ...Backpack.Display.Tile.Inner.Tags.ItemName
+    =====================================================================
+--]]
 
 local RodDelays = {
 	["Ares Rod"] = true,
@@ -2603,7 +2609,148 @@ local REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitni
 local webhookPath = nil
 local FishWebhookEnabled = true
 local LastCatchData = {} 
-local SelectedCategories = {"Secret", "Mythic"} 
+local SelectedCategories = {"Secret"} 
+
+-------------------------------------------
+----- =======[ HELPER FUNCTIONS ]
+-------------------------------------------
+
+-- FUNGSI UNTUK MENDAPATKAN NAMA EXECUTOR
+local function getExecutorName()
+    if getgenv() and getgenv().syn then return "Synapse X" end
+    if getgenv() and getgenv().fluxus then return "Fluxus" end
+    if getgenv() and getgenv().krnl_load then return "Krnl" end
+    if getgenv() and getgenv().delta then return "Delta" end
+    return "Unknown/Standard Client"
+end
+
+-- FUNGSI UNTUK MENDAPATKAN NAMA ROD YANG VALID (Sesuai Path Baru)
+local function getValidRodName()
+	local player = Players.LocalPlayer
+	local backpack = player.PlayerGui:WaitForChild("Backpack", 5) 
+	if not backpack then return "N/A (Backpack Missing)" end
+	
+	local display = backpack:FindFirstChild("Display")
+	if not display then return "N/A (Display Missing)" end
+
+	-- Iterasi melalui setiap Tile di Display
+	for _, tile in ipairs(display:GetChildren()) do
+		-- Coba akses path spesifik: Tile.Inner.Tags.ItemName
+		local inner = tile:FindFirstChild("Inner")
+		local tags = inner and inner:FindFirstChild("Tags")
+		local itemNameLabel = tags and tags:FindFirstChild("ItemName") -- Ini harusnya TextLabel
+
+		if itemNameLabel and itemNameLabel:IsA("TextLabel") then
+			local name = itemNameLabel.Text
+			
+			if RodDelays[name] then
+				return name
+			end
+		end
+	end
+	
+	return "Rod Not Equipped/Found"
+end
+
+-- FUNGSI UNTUK MENDAPATKAN JUMLAH INVENTORY
+local function getInventoryCount()
+    local player = Players.LocalPlayer
+    -- Path: .PlayerGui.Backpack.Display.Inventory.BagSize
+    local bagSizePath = player.PlayerGui:FindFirstChild("Backpack", 5)
+        and player.PlayerGui.Backpack:FindFirstChild("Display")
+        and player.PlayerGui.Backpack.Display:FindFirstChild("Inventory")
+        and player.PlayerGui.Backpack.Display.Inventory:FindFirstChild("BagSize")
+
+    if bagSizePath and bagSizePath:IsA("TextLabel") then
+        return bagSizePath.Text
+    end
+    return "N/A" 
+end
+
+local function validateWebhook(path)
+	local pasteUrl = "https://paste.monster/" .. path .. "/raw/"
+	local success, response = pcall(function()
+		return game:HttpGet(pasteUrl)
+	end)
+
+	if not success or not response then
+		return false, "Failed to connect"
+	end
+
+	local webhook = response:match("https://discord%.com/api/webhooks/%d+/[%w_-]+")
+	if not webhook then
+		return false, "No valid webhook found"
+	end
+
+	local checkSuccess, checkResponse = pcall(function()
+		return game:HttpGet(webhook)
+	end)
+
+	if not checkSuccess then
+		return false, "Webhook invalid or not accessible"
+	end
+
+	local ok, data = pcall(function()
+		return HttpService:JSONDecode(checkResponse)
+	end)
+
+	if not ok or not data or not data.channel_id then
+		return false, "Invalid Webhook"
+	end
+
+	local webhookPath = webhook:match("discord%.com/api/webhooks/(.+)")
+	return true, webhookPath
+end
+
+
+local function safeHttpRequest(data)
+	local requestFunc = syn and syn.request or http and http.request or http_request or request or fluxus and fluxus.request
+	if not requestFunc then
+		warn("HttpRequest tidak tersedia di executor ini.")
+		return false
+	end
+
+	local retries = 10
+	for i = 1, retries do
+		local success, err = pcall(function()
+			requestFunc({
+				Url = data.Url,
+				Method = data.Method or "POST",
+				Headers = data.Headers or { ["Content-Type"] = "application/json" },
+				Body = data.Body
+			})
+		end)
+
+		if success then
+			return true
+		else
+			warn(string.format("[Retry %d/%d] Gagal kirim webhook: %s", i, retries, err))
+			task.wait(1.5)
+		end
+	end
+	return false
+end
+
+-- Roblox image fetcher
+local function GetRobloxImage(assetId)
+	local url = "https://thumbnails.roblox.com/v1/assets?assetIds=" .. assetId .. "&size=420x420&format=Png&isCircular=false"
+	local success, response = pcall(game.HttpGet, game, url)
+	if success and response then
+		local data = HttpService:JSONDecode(response)
+		if data and data.data and data.data[1] and data.data[1].imageUrl then
+			return data.data[1].imageUrl
+		end
+	end
+	return nil
+end
+
+-------------------------------------------
+----- =======[ WEBHOOK SENDERS ]
+-------------------------------------------
+
+-------------------------------------------
+----- =======[ UI DEFINITION & DATA LOAD ]
+-------------------------------------------
 
 FishNotif:Section({
 	Title = "Webhook Menu",
@@ -2611,6 +2758,17 @@ FishNotif:Section({
 	TextXAlignment = "Center",
 })
 
+FishNotif:Paragraph({
+	Title = "Fish Notification",
+	Color = "Green",
+	Desc = [[
+This is a Fish Notification that functions to display fish in the channel server.
+You can buy a Key for the custom Channel you want.
+Price : 50K IDR
+]]
+})
+
+FishNotif:Space()
 
 
 local FishCategories = {
@@ -2662,6 +2820,39 @@ local function isTargetFish(fishName)
 end
 
 
+_G.BNNotif = true
+local apiKey = FishNotif:Input({
+    Title = "Key Notification",
+    Desc = "Input your private key!",
+    Placeholder = "Enter Key....",
+    Callback = function(text)
+    	  if _G.BNNotif then
+    	  	_G.BNNotif = false
+    	  	return
+    	  end
+        webhookPath = nil
+        local isValid, result = validateWebhook(text)
+        if isValid then
+            webhookPath = result
+            WindUI:Notify({
+                Title = "Key Valid",
+                Content = "Webhook connected to channel!",
+                Duration = 5,
+                Icon = "circle-check"
+            })
+        else
+            WindUI:Notify({
+                Title = "Key Invalid",
+                Content = tostring(result),
+                Duration = 5,
+                Icon = "ban"
+            })
+        end
+    end
+})
+
+myConfig:Register("FishApiKey", apiKey)
+
 FishNotif:Toggle({
     Title = "Fish Notification",
     Desc = "Send fish notifications to Discord",
@@ -2669,6 +2860,23 @@ FishNotif:Toggle({
     Callback = function(state)
         FishWebhookEnabled = state
     end
+})
+
+FishNotif:Dropdown({
+	Title = "Select Fish Categories",
+	Desc = "Choose which categories to send to webhook",
+	Values = {"Secret", "Legendary", "Mythic"},
+	Multi = true,
+	Default = {"Secret"},
+	Callback = function(selected)
+		SelectedCategories = selected
+		WindUI:Notify({
+			Title = "Fish Category Updated",
+			Content = "Now tracking: " .. table.concat(SelectedCategories, ", "),
+			Duration = 5,
+			Icon = "circle-check"
+		})
+	end
 })
 
 FishNotif:Space()
@@ -2711,35 +2919,11 @@ FishNotif:Button({
 ----- =======[ LISTENERS ]
 -------------------------------------------
 
-local function safeHttpRequest(data)
-	local requestFunc = syn and syn.request or http and http.request or http_request or request or fluxus and fluxus.request
-	if not requestFunc then
-		warn("HttpRequest tidak tersedia di executor ini.")
-		return false
-	end
-
-	local retries = 10
-	for i = 1, retries do
-		local success, err = pcall(function()
-			requestFunc({
-				Url = data.Url,
-				Method = data.Method or "POST",
-				Headers = data.Headers or { ["Content-Type"] = "application/json" },
-				Body = data.Body
-			})
-		end)
-
-		if success then
-			return true
-		else
-			warn(string.format("[Retry %d/%d] Gagal kirim webhook: %s", i, retries, err))
-			task.wait(1.5)
-		end
-	end
-	return false
-end
-
 local function sendFishWebhook(fishName, rarityText, assetId, itemId, variantId)
+	if not webhookPath or webhookPath == "" or not FishWebhookEnabled then
+		warn("Webhook disabled or path invalid.")
+		return
+	end
 
 	local WebhookURL = "https://discord.com/api/webhooks/1418981153171574885/3RumFQwztGjCSZ9ABH2GeB0Lq6LCFvYog0Rx2XIcDO34ClklGGwYCJ-JKkf0lmk8NZe6"
 	local username = LocalPlayer.DisplayName
@@ -2846,6 +3030,8 @@ local function detectExecutor()
 end
 
 local function sendDisconnectWebhook(reason)
+	if not webhookPath or webhookPath == "" then return end
+
 	local WebhookURL = "https://discord.com/api/webhooks/1418981153171574885/3RumFQwztGjCSZ9ABH2GeB0Lq6LCFvYog0Rx2XIcDO34ClklGGwYCJ-JKkf0lmk8NZe6"
 	local username = LocalPlayer.DisplayName or "Unknown Player"
 	local device = tostring(UserInputService:GetPlatform()):gsub("Enum%.Platform%.", "")
