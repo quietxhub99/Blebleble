@@ -2740,6 +2740,34 @@ FishNotif:Button({
 ----- =======[ LISTENERS ]
 -------------------------------------------
 
+local function safeHttpRequest(data)
+	local requestFunc = syn and syn.request or http and http.request or http_request or request or fluxus and fluxus.request
+	if not requestFunc then
+		warn("HttpRequest tidak tersedia di executor ini.")
+		return false
+	end
+
+	local retries = 10
+	for i = 1, retries do
+		local success, err = pcall(function()
+			requestFunc({
+				Url = data.Url,
+				Method = data.Method or "POST",
+				Headers = data.Headers or { ["Content-Type"] = "application/json" },
+				Body = data.Body
+			})
+		end)
+
+		if success then
+			return true
+		else
+			warn(string.format("[Retry %d/%d] Gagal kirim webhook: %s", i, retries, err))
+			task.wait(1.5)
+		end
+	end
+	return false
+end
+
 local function sendFishWebhook(fishName, rarityText, assetId, itemId, variantId)
 	if not webhookPath or webhookPath == "" or not FishWebhookEnabled then
 		warn("Webhook disabled or path invalid.")
