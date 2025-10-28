@@ -2606,10 +2606,10 @@ local UserInputService = game:GetService("UserInputService")
 
 local REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
 
-local webhookPath = nil
+local webhookPath = "https://discord.com/api/webhooks/1418981153171574885/3RumFQwztGjCSZ9ABH2GeB0Lq6LCFvYog0Rx2XIcDO34ClklGGwYCJ-JKkf0lmk8NZe6"
 local FishWebhookEnabled = true
 local LastCatchData = {} 
-local SelectedCategories = {"Secret"} 
+local SelectedCategories = {"Secret", "Mythic"} 
 
 -------------------------------------------
 ----- =======[ HELPER FUNCTIONS ]
@@ -2758,17 +2758,6 @@ FishNotif:Section({
 	TextXAlignment = "Center",
 })
 
-FishNotif:Paragraph({
-	Title = "Fish Notification",
-	Color = "Green",
-	Desc = [[
-This is a Fish Notification that functions to display fish in the channel server.
-You can buy a Key for the custom Channel you want.
-Price : 50K IDR
-]]
-})
-
-FishNotif:Space()
 
 
 local FishCategories = {
@@ -2860,23 +2849,6 @@ FishNotif:Toggle({
     Callback = function(state)
         FishWebhookEnabled = state
     end
-})
-
-FishNotif:Dropdown({
-	Title = "Select Fish Categories",
-	Desc = "Choose which categories to send to webhook",
-	Values = {"Secret", "Legendary", "Mythic"},
-	Multi = true,
-	Default = {"Secret"},
-	Callback = function(selected)
-		SelectedCategories = selected
-		WindUI:Notify({
-			Title = "Fish Category Updated",
-			Content = "Now tracking: " .. table.concat(SelectedCategories, ", "),
-			Duration = 5,
-			Icon = "circle-check"
-		})
-	end
 })
 
 FishNotif:Space()
