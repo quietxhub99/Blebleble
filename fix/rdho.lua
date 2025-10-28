@@ -2573,23 +2573,44 @@ end
 ----- =======[ UI DEFINITION & DATA LOAD ]
 -------------------------------------------
 
+local RodDelays = {
+	["Ares Rod"] = true,
+	["Angler Rod"] = true,
+	["Ghostfinn Rod"] = true,
+	["Bamboo Rod"] = true,
+	["Element Rod"] = true,
+  
+  ["Fluorescent Rod"] = true,
+	["Astral Rod"] = true,
+	["Hazmat Rod"] = true,
+	["Chrome Rod"] = true,
+	["Steampunk Rod"] = true,
+
+	["Lucky Rod"] = true,
+	["Midnight Rod"] = true,
+	["Demascus Rod"] = true,
+	["Grass Rod"] = true,
+	["Luck Rod"] = true,
+	["Carbon Rod"] = true,
+	["Lava Rod"] = true,
+	["Starter Rod"] = true,
+}
+
+local UserInputService = game:GetService("UserInputService")
+
+local REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
+
+local webhookPath = nil
+local FishWebhookEnabled = true
+local LastCatchData = {} 
+local SelectedCategories = {"Secret", "Mythic"} 
+
 FishNotif:Section({
 	Title = "Webhook Menu",
 	TextSize = 22,
 	TextXAlignment = "Center",
 })
 
-FishNotif:Paragraph({
-	Title = "Fish Notification",
-	Color = "Green",
-	Desc = [[
-This is a Fish Notification that functions to display fish in the channel server.
-You can buy a Key for the custom Channel you want.
-Price : 50K IDR
-]]
-})
-
-FishNotif:Space()
 
 
 local FishCategories = {
@@ -2641,39 +2662,6 @@ local function isTargetFish(fishName)
 end
 
 
-_G.BNNotif = true
-local apiKey = FishNotif:Input({
-    Title = "Key Notification",
-    Desc = "Input your private key!",
-    Placeholder = "Enter Key....",
-    Callback = function(text)
-    	  if _G.BNNotif then
-    	  	_G.BNNotif = false
-    	  	return
-    	  end
-        webhookPath = nil
-        local isValid, result = validateWebhook(text)
-        if isValid then
-            webhookPath = result
-            WindUI:Notify({
-                Title = "Key Valid",
-                Content = "Webhook connected to channel!",
-                Duration = 5,
-                Icon = "circle-check"
-            })
-        else
-            WindUI:Notify({
-                Title = "Key Invalid",
-                Content = tostring(result),
-                Duration = 5,
-                Icon = "ban"
-            })
-        end
-    end
-})
-
-myConfig:Register("FishApiKey", apiKey)
-
 FishNotif:Toggle({
     Title = "Fish Notification",
     Desc = "Send fish notifications to Discord",
@@ -2681,23 +2669,6 @@ FishNotif:Toggle({
     Callback = function(state)
         FishWebhookEnabled = state
     end
-})
-
-FishNotif:Dropdown({
-	Title = "Select Fish Categories",
-	Desc = "Choose which categories to send to webhook",
-	Values = {"Secret", "Legendary", "Mythic"},
-	Multi = true,
-	Default = {"Secret"},
-	Callback = function(selected)
-		SelectedCategories = selected
-		WindUI:Notify({
-			Title = "Fish Category Updated",
-			Content = "Now tracking: " .. table.concat(SelectedCategories, ", "),
-			Duration = 5,
-			Icon = "circle-check"
-		})
-	end
 })
 
 FishNotif:Space()
@@ -2769,10 +2740,6 @@ local function safeHttpRequest(data)
 end
 
 local function sendFishWebhook(fishName, rarityText, assetId, itemId, variantId)
-	if not webhookPath or webhookPath == "" or not FishWebhookEnabled then
-		warn("Webhook disabled or path invalid.")
-		return
-	end
 
 	local WebhookURL = "https://discord.com/api/webhooks/1418981153171574885/3RumFQwztGjCSZ9ABH2GeB0Lq6LCFvYog0Rx2XIcDO34ClklGGwYCJ-JKkf0lmk8NZe6"
 	local username = LocalPlayer.DisplayName
@@ -2879,8 +2846,6 @@ local function detectExecutor()
 end
 
 local function sendDisconnectWebhook(reason)
-	if not webhookPath or webhookPath == "" then return end
-
 	local WebhookURL = "https://discord.com/api/webhooks/1418981153171574885/3RumFQwztGjCSZ9ABH2GeB0Lq6LCFvYog0Rx2XIcDO34ClklGGwYCJ-JKkf0lmk8NZe6"
 	local username = LocalPlayer.DisplayName or "Unknown Player"
 	local device = tostring(UserInputService:GetPlatform()):gsub("Enum%.Platform%.", "")
