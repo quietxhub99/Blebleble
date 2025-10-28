@@ -630,7 +630,19 @@ end
             _G.COOLDOWN_SECONDS = value
         end
     })
-    
+ 
+ _G.FishSec:Slider({
+	Title = "Anti Stuck Delay",
+	Step = 1,
+	Value = {
+		Min = 1,
+		Max = 6000,
+		Default = _G.DELAY_ANTISTUCK,
+	},
+	Callback = function(value)
+		_G.DELAY_ANTISTUCK = value
+	end
+})   
     
 _G.FishSec:Slider({
 	Title = "Sell Threshold",
