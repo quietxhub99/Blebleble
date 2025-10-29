@@ -417,24 +417,18 @@ end)
     end)
     
 
--- Services
-_G.ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-_G.RENotif = ReplicatedStorage
-    .Packages._Index["sleitnick_net@0.2.0"]
-    .net["RE/ObtainedNewFishNotification"]
-
-_G.RENotif.OnClientEvent:Connect(function(_, _, data)
-    _G.stopSpam()
-    _G.StopFishing()
-    FuncAutoFish.lastCatchTime5x = tick()
-    FuncAutoFish.CatchLast5x = tick()
-
-    if FuncAutoFish.autofish5x then
-        task.defer(function()
-            task.defer(StartCast5X)
-        end)
-    end
+_G.REFishCaught.OnClientEvent:Connect(function(fishName, info)  
+  _G.stopSpam()  
+  _G.StopFishing()  
+	FuncAutoFish.lastCatchTime5x = tick()  
+	FuncAutoFish.CatchLast5x = tick()	  
+      
+	if FuncAutoFish.autofish5x then  
+		task.defer(function()  
+		    task.defer(StartCast5X)  
+		end)  
+	end  
 end)
     
     
@@ -665,50 +659,6 @@ _G.FishSec:Toggle({
 			NotifySuccess("Auto Sell", "Disabled")
 		end
 	end
-})
-
---// Services
-_G.ReplicatedStorage = game:GetService("ReplicatedStorage")
-
---// Remote Event
-_G.REFishCaught = _G.ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
-
---// Connection Store
-_G.BlockedConnections = {}
-
---// Function to block all connections of a RemoteEvent
-_G.BlockEventConnections = function(event)
-    -- Disconnect all existing connections
-    for _, conn in pairs(getconnections(event.OnClientEvent)) do
-        conn:Disable()
-        table.insert(_G.BlockedConnections, conn)
-    end
-end
-
---// Function to unblock (re-enable) connections
-_G.UnblockEventConnections = function()
-    for _, conn in pairs(_G.BlockedConnections) do
-        if conn.Connected == false then
-            pcall(function()
-                conn:Enable()
-            end)
-        end
-    end
-    table.clear(_G.BlockedConnections)
-end
-
-_G.FishSec:Toggle({
-    Title = "Block FishCaught",
-    Value = false,
-    Callback = function(state)
-        if state then
-            print("[QuietXDev] 🔒 Semua connection event RE/FishCaught diblokir.")
-            _G.BlockEventConnections(_G.REFishCaught)
-        else
-            print("[QuietXDev] 🔓 Semua connection event RE/FishCaught diaktifkan kembali.")
-            _G.UnblockEventConnections()
-        end
-    end
 })
     
     _G.AutoFishes = _G.FishSec:Toggle({
