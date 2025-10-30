@@ -38,6 +38,10 @@ end)
 local TeleportService = game:GetService("TeleportService")
 local PlaceId = game.PlaceId
 
+for i,v in next, getconnections(game:GetService("Players").LocalPlayer.Idled) do
+                    v:Disable()
+end
+
 local function AutoReconnect()
     while task.wait(5) do
         if not Players.LocalPlayer or not Players.LocalPlayer:IsDescendantOf(game) then
@@ -494,39 +498,8 @@ Trade:Toggle({
     	delayInitialized = false,
     	lastCatchTime5x = 0,
     	CatchLast = tick(),
-    	sellThreesold = true
     }
-    
-    local obtainedFishUUIDs = {}
-    local obtainedLimit = 30
-    
-    
-    local RemoteFish = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"]
-    RemoteFish.OnClientEvent:Connect(function(_, _, data)
-    	if data and data.InventoryItem and data.InventoryItem.UUID then
-    		table.insert(obtainedFishUUIDs, data.InventoryItem.UUID)
-    	end
-    end)
-    
-    local function sellItems()
-    	if #obtainedFishUUIDs > 0 then
-    		ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellAllItems"]:InvokeServer()
-    	end
-    	obtainedFishUUIDs = {}
-    end
-    
-    local function monitorFishThreshold5X()
-    	task.spawn(function()
-    		while FuncAutoFish.sellThreesold do
-    			if #obtainedFishUUIDs >= tonumber(obtainedLimit) then
-    				NotifyInfo("Fish Threshold Reached", "Selling all fishes...")
-    				sellItems()
-    				task.wait(0.5)
-    			end
-    			task.wait(0.5)
-    		end
-    	end)
-    end
+   
     
     
     _G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
@@ -560,6 +533,38 @@ Trade:Toggle({
     end
     
     
+_G.obtainedFishUUIDs = {}
+_G.obtainedLimit = 30
+_G.sellActive = false
+
+_G.RemotePackage = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
+_G.RemoteFish = _G.RemotePackage["RE/ObtainedNewFishNotification"]
+_G.RemoteSell = _G.RemotePackage["RF/SellAllItems"]
+
+_G.RemoteFish.OnClientEvent:Connect(function(_, _, data)
+	if _G.sellActive and data and data.InventoryItem and data.InventoryItem.UUID then
+		table.insert(_G.obtainedFishUUIDs, data.InventoryItem.UUID)
+	end
+end)
+
+local function sellItems()
+	if #_G.obtainedFishUUIDs > 0 then
+		_G.RemoteSell:InvokeServer()
+		print("[Auto Sell] Selling all fishes (" .. tostring(#_G.obtainedFishUUIDs) .. ")")
+	end
+	_G.obtainedFishUUIDs = {}
+end
+
+task.spawn(function()
+	while task.wait(0.5) do
+		if _G.sellActive and #_G.obtainedFishUUIDs >= tonumber(_G.obtainedLimit) then
+			sellItems()
+			task.wait(0.5)
+		end
+	end
+end)
+    
+    
     FuncAutoFish.REReplicateTextEffect.OnClientEvent:Connect(function(data)
     	if FuncAutoFish.autofish5x 
     	and data and data.TextData 
@@ -580,7 +585,8 @@ Trade:Toggle({
         
     	if FuncAutoFish.autofish5x then
     		task.defer(function()
-    		    task.defer(StartCast5X)
+    			task.wait(1)
+    			task.defer(StartCast5X)
     		end)
     	end
     end)
@@ -619,7 +625,6 @@ end
     function StartAutoFish5X()
     	FuncAutoFish.autofish5x = true
     	FuncAutoFish.CatchLast5x = tick()
-    	monitorFishThreshold5X()
     	_G.equipRemote:FireServer(1)
     	task.wait(0.05)
     	StartCast5X()
@@ -684,9 +689,11 @@ _G.AutoFishState = {
     MinigameActive = false
 }
 
+_G.SPEED_LEGIT = 0.05
+
 function _G.performClick()
     _G.FishingController:RequestFishingMinigameClick()
-    task.wait(0.03 + math.random() * 0.03) 
+    task.wait(tonumber(_G.SPEED_LEGIT)) 
 end
 
 _G.originalAutoFishingStateChanged = _G.AutoFishingController.AutoFishingStateChanged
@@ -768,7 +775,14 @@ function _G.ToggleAutoClick(shouldActivate)
 end
 
     
-    _G.RecastCD = AutoFarmTab:Slider({
+    _G.FishSec = AutoFarmTab:Section({
+    	Title = "Auto Fishing",
+    	TextSize = 22,
+    	TextXAlignment = "Center",
+    	Opened = true
+    })
+    
+    _G.RecastCD = _G.FishSec:Slider({
         Title = "Delay Finish",
         Step = 1,
         Value = {
@@ -781,23 +795,59 @@ end
         end
     })
     
-    
-   _G.FishThres = AutoFarmTab:Slider({
-    	Title = "Sell Threshold",
-    	Stel = 1,
-    	Value = {
-    	    Min = 1,
-    	    Max = 6000,
-    	    Default = obtainedLimit,
-    	},
-    	Callback = function(value)
-    		obtainedLimit = value
-    	end
+_G.RecastCD = _G.FishSec:Slider({
+        Title = "Speed Legit",
+        Step = 0.01,
+        Value = {
+            Min = 0.01,
+            Max = 5,
+            Default = _G.SPEED_LEGIT,
+        },
+        Callback = function(value)
+            _G.SPEED_LEGIT = value
+        end
     })
     
-    myConfig:Register("FishThreshold", FishThres)
+_G.FishSec:Slider({
+	Title = "Sell Threshold",
+	Step = 1,
+	Value = {
+		Min = 1,
+		Max = 6000,
+		Default = 30,
+	},
+	Callback = function(value)
+		_G.obtainedLimit = value
+	end
+})
+
+_G.FishSec:Slider({
+	Title = "Anti Stuck Delay",
+	Step = 1,
+	Value = {
+		Min = 1,
+		Max = 6000,
+		Default = _G.DELAY_ANTISTUCK,
+	},
+	Callback = function(value)
+		_G.DELAY_ANTISTUCK = value
+	end
+})
     
-    _G.AutoFishes = AutoFarmTab:Toggle({
+_G.FishSec:Toggle({
+	Title = "Auto Sell",
+	Value = false,
+	Callback = function(state)
+		_G.sellActive = state
+		if state then
+			NotifySuccess("Auto Sell", "Limit: " .. _G.obtainedLimit)
+		else
+			NotifySuccess("Auto Sell", "Disabled")
+		end
+	end
+})
+    
+    _G.AutoFishes = _G.FishSec:Toggle({
     	Title = "Auto Fish",
     	Callback = function(value)
     		if value then
@@ -808,37 +858,76 @@ end
     	end
     })
     
-    AutoFarmTab:Toggle({
+_G.FishSec:Toggle({
     Title = "Auto Fish Legit",
-    Value = false, -- default value
+    Value = false,
     Callback = function(state)
+    	  _G.equipRemote:FireServer(1)
         _G.ToggleAutoClick(state)
+
+        local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+        local fishingGui = playerGui:WaitForChild("Fishing"):WaitForChild("Main")
+        local chargeGui = playerGui:WaitForChild("Charge"):WaitForChild("Main")
+
+        if state then
+            fishingGui.Visible = false
+            chargeGui.Visible = false
+        else
+            fishingGui.Visible = true
+            chargeGui.Visible = true
+        end
     end
 })
     
+    _G.FishSec:Space()
     
-    myConfig:Register("AutoFish", _G.AutoFishes)
-
-
-AutoFarmTab:Button({
-    Title = "Stop Fishing",
-    Locked = false,
-    Callback = function()
-        _G.StopFishing()
-        RodIdle:Stop()
-        RodIdle:Stop()
-    end
-})
-
-
-local PerfectCast = AutoFarmTab:Toggle({
+local PerfectCast = _G.FishSec:Toggle({
     Title = "Auto Perfect Cast",
     Value = true,
     Callback = function(value)
-        FuncAutoFish.perfectCast = value
+        FuncAutoFish.perfectCast5x = value
     end
 })
+
 myConfig:Register("Prefect", PerfectCast)
+
+_G.FishSec:Space()
+
+    
+    _G.FishSec:Button({
+        Title = "Stop Fishing",
+        Locked = false,
+        Justify = "Center",
+        Icon = "",
+        Callback = function()
+            _G.StopFishing()
+            RodIdle:Stop()
+            RodIdle:Stop()
+        end
+    })
+    
+    _G.FishSec:Space()
+    
+
+_G.REReplicateCutscene = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateCutscene"]
+_G.BlockCutsceneEnabled = false
+
+
+_G.FishSec:Toggle({
+    Title = "Block Cutscene",
+    Value = false,
+    Callback = function(state)
+        _G.BlockCutsceneEnabled = state
+        print("Block Cutscene: " .. tostring(state))
+    end
+})
+
+_G.REReplicateCutscene.OnClientEvent:Connect(function(rarity, player, position, fishName, data)
+    if _G.BlockCutsceneEnabled then
+        print("[QuietX] Cutscene diblokir:", fishName, "(Rarity:", rarity .. ")")
+        return nil -- blokir event agar tidak muncul cutscene
+    end
+end)
 
 
 function sellAllFishes()

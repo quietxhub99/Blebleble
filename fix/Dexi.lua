@@ -284,39 +284,8 @@ end)
     	delayInitialized = false,
     	lastCatchTime5x = 0,
     	CatchLast = tick(),
-    	sellThreesold = true
     }
-    
-    _G.obtainedFishUUIDs = {}
-_G.obtainedLimit = 30
-_G.sellActive = false
-
-_G.RemotePackage = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
-_G.RemoteFish = _G.RemotePackage["RE/ObtainedNewFishNotification"]
-_G.RemoteSell = _G.RemotePackage["RF/SellAllItems"]
-
-_G.RemoteFish.OnClientEvent:Connect(function(_, _, data)
-	if _G.sellActive and data and data.InventoryItem and data.InventoryItem.UUID then
-		table.insert(_G.obtainedFishUUIDs, data.InventoryItem.UUID)
-	end
-end)
-
-local function sellItems()
-	if #_G.obtainedFishUUIDs > 0 then
-		_G.RemoteSell:InvokeServer()
-		print("[Auto Sell] Selling all fishes (" .. tostring(#_G.obtainedFishUUIDs) .. ")")
-	end
-	_G.obtainedFishUUIDs = {}
-end
-
-task.spawn(function()
-	while task.wait(0.5) do
-		if _G.sellActive and #_G.obtainedFishUUIDs >= tonumber(_G.obtainedLimit) then
-			sellItems()
-			task.wait(0.5)
-		end
-	end
-end)
+   
     
     
     _G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
@@ -350,6 +319,38 @@ end)
     end
     
     
+_G.obtainedFishUUIDs = {}
+_G.obtainedLimit = 30
+_G.sellActive = false
+
+_G.RemotePackage = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
+_G.RemoteFish = _G.RemotePackage["RE/ObtainedNewFishNotification"]
+_G.RemoteSell = _G.RemotePackage["RF/SellAllItems"]
+
+_G.RemoteFish.OnClientEvent:Connect(function(_, _, data)
+	if _G.sellActive and data and data.InventoryItem and data.InventoryItem.UUID then
+		table.insert(_G.obtainedFishUUIDs, data.InventoryItem.UUID)
+	end
+end)
+
+local function sellItems()
+	if #_G.obtainedFishUUIDs > 0 then
+		_G.RemoteSell:InvokeServer()
+		print("[Auto Sell] Selling all fishes (" .. tostring(#_G.obtainedFishUUIDs) .. ")")
+	end
+	_G.obtainedFishUUIDs = {}
+end
+
+task.spawn(function()
+	while task.wait(0.5) do
+		if _G.sellActive and #_G.obtainedFishUUIDs >= tonumber(_G.obtainedLimit) then
+			sellItems()
+			task.wait(0.5)
+		end
+	end
+end)
+    
+    
     FuncAutoFish.REReplicateTextEffect.OnClientEvent:Connect(function(data)
     	if FuncAutoFish.autofish5x 
     	and data and data.TextData 
@@ -370,7 +371,8 @@ end)
         
     	if FuncAutoFish.autofish5x then
     		task.defer(function()
-    		    task.defer(StartCast5X)
+    			task.wait(1)
+    			task.defer(StartCast5X)
     		end)
     	end
     end)
@@ -473,9 +475,11 @@ _G.AutoFishState = {
     MinigameActive = false
 }
 
+_G.SPEED_LEGIT = 0.05
+
 function _G.performClick()
     _G.FishingController:RequestFishingMinigameClick()
-    task.wait(0.03 + math.random() * 0.03) 
+    task.wait(tonumber(_G.SPEED_LEGIT)) 
 end
 
 _G.originalAutoFishingStateChanged = _G.AutoFishingController.AutoFishingStateChanged
@@ -577,6 +581,18 @@ end
         end
     })
     
+_G.RecastCD = _G.FishSec:Slider({
+        Title = "Speed Legit",
+        Step = 0.01,
+        Value = {
+            Min = 0.01,
+            Max = 5,
+            Default = _G.SPEED_LEGIT,
+        },
+        Callback = function(value)
+            _G.SPEED_LEGIT = value
+        end
+    })
     
 _G.FishSec:Slider({
 	Title = "Sell Threshold",
@@ -628,17 +644,30 @@ _G.FishSec:Toggle({
     	end
     })
     
-    _G.FishSec:Toggle({
+_G.FishSec:Toggle({
     Title = "Auto Fish Legit",
-    Value = false, -- default value
+    Value = false,
     Callback = function(state)
+    	  _G.equipRemote:FireServer(1)
         _G.ToggleAutoClick(state)
+
+        local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+        local fishingGui = playerGui:WaitForChild("Fishing"):WaitForChild("Main")
+        local chargeGui = playerGui:WaitForChild("Charge"):WaitForChild("Main")
+
+        if state then
+            fishingGui.Visible = false
+            chargeGui.Visible = false
+        else
+            fishingGui.Visible = true
+            chargeGui.Visible = true
+        end
     end
 })
     
     _G.FishSec:Space()
     
-    local PerfectCast = _G.FishSec:Toggle({
+local PerfectCast = _G.FishSec:Toggle({
     Title = "Auto Perfect Cast",
     Value = true,
     Callback = function(value)

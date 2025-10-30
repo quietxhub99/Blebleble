@@ -35,6 +35,10 @@ task.spawn(function()
     end
 end)
 
+for i,v in next, getconnections(game:GetService("Players").LocalPlayer.Idled) do
+                    v:Disable()
+end
+
 local TeleportService = game:GetService("TeleportService")
 local PlaceId = game.PlaceId
 
@@ -392,7 +396,8 @@ end)
         
     	if FuncAutoFish.autofish5x then
     		task.defer(function()
-    		    task.defer(StartCast5X)
+    			task.wait(1)
+    			task.defer(StartCast5X)
     		end)
     	end
     end)
@@ -495,9 +500,11 @@ _G.AutoFishState = {
     MinigameActive = false
 }
 
+_G.SPEED_LEGIT = 0.05
+
 function _G.performClick()
     _G.FishingController:RequestFishingMinigameClick()
-    task.wait(0.03 + math.random() * 0.03) 
+    task.wait(tonumber(_G.SPEED_LEGIT)) 
 end
 
 _G.originalAutoFishingStateChanged = _G.AutoFishingController.AutoFishingStateChanged
@@ -599,6 +606,19 @@ end
         end
     })
     
+_G.RecastCD = _G.FishSec:Slider({
+        Title = "Speed Legit",
+        Step = 0.01,
+        Value = {
+            Min = 0.01,
+            Max = 5,
+            Default = _G.SPEED_LEGIT,
+        },
+        Callback = function(value)
+            _G.SPEED_LEGIT = value
+        end
+    })
+    
 _G.FishSec:Slider({
 	Title = "Sell Threshold",
 	Step = 1,
@@ -649,17 +669,30 @@ _G.FishSec:Toggle({
     	end
     })
     
-    _G.FishSec:Toggle({
+_G.FishSec:Toggle({
     Title = "Auto Fish Legit",
-    Value = false, -- default value
+    Value = false,
     Callback = function(state)
+    	  _G.equipRemote:FireServer(1)
         _G.ToggleAutoClick(state)
+
+        local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+        local fishingGui = playerGui:WaitForChild("Fishing"):WaitForChild("Main")
+        local chargeGui = playerGui:WaitForChild("Charge"):WaitForChild("Main")
+
+        if state then
+            fishingGui.Visible = false
+            chargeGui.Visible = false
+        else
+            fishingGui.Visible = true
+            chargeGui.Visible = true
+        end
     end
 })
     
     _G.FishSec:Space()
     
-    local PerfectCast = _G.FishSec:Toggle({
+local PerfectCast = _G.FishSec:Toggle({
     Title = "Auto Perfect Cast",
     Value = true,
     Callback = function(value)
