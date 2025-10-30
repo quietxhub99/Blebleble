@@ -242,40 +242,6 @@ local SettingsTab = Window:Tab({
 	Icon = "cog" 
 })
 
--------------------------------------------
------ =======[ DEVELOPER TAB ]
--------------------------------------------
-
-DevTab:Paragraph({
-    Title = "Developer",
-    Desc = "This is Developer Contact",
-    Color = "Green",
-    Buttons = {
-    	{
-    		Title = "Discord Server",
-    		Callback = function()
-    			setclipboard("https://discord.gg/2aMDrb92kf")
-    		end
-    	},
-      {
-      	Title = "Instagram",
-      	Callback = function()
-      		setclipboard("https://instagram.com/quietxdev")
-        end
-      },
-      {
-      	Title = "Github",
-      	Callback = function()
-      		setclipboard("https://github.com/ohmygod-king")
-        end
-      }
-    }
-})
-
-if getgenv().AutoRejoinConnection then
-    getgenv().AutoRejoinConnection:Disconnect()
-    getgenv().AutoRejoinConnection = nil
-end
 
 getgenv().AutoRejoinConnection = game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
     task.wait()
