@@ -978,7 +978,7 @@ local GlobalFav = {
 -- Load Fish Names
 for _, item in pairs(ReplicatedStorage.Items:GetChildren()) do
 	local ok, data = pcall(require, item)
-	if ok and data.Data and data.Data.Type == "Fishes" then
+	if ok and data.Data and data.Data.Type == "Fish" then
 		local id = data.Data.Id
 		local name = data.Data.Name
 		GlobalFav.FishIdToName[id] = name
@@ -2724,7 +2724,7 @@ local FishCategories = {
 local FishDataById = {}
 for _, item in pairs(ReplicatedStorage.Items:GetChildren()) do
 	local ok, data = pcall(require, item)
-	if ok and data.Data and data.Data.Type == "Fishes" then
+	if ok and data.Data and data.Data.Type == "Fish" then
 		FishDataById[data.Data.Id] = {
 			Name = data.Data.Name,
 			SellPrice = data.SellPrice or 0
