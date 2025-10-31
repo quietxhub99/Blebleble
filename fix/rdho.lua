@@ -1495,7 +1495,7 @@ local function startAutoFarmLoop()
         end
 
         -- 4. Stop Fishing sebelum teleport berikutnya
-        _G.ToggleAutoClick(falss)
+        _G.ToggleAutoClick(false)
 
         if not isAutoFarmRunning then
             NotifyWarning("Auto Farm Stopped", "Auto Farm manually disabled. Auto Fish stopped.")
@@ -1613,7 +1613,7 @@ _G.UnlockTemple = function()
             "Hourglass Diamond Artifact",
             "Crescent Artifact",
             "Arrow Artifact",
-            "Diamond Artifact"
+            "Diamond Artifact",
         }
 
         for _, artifact in ipairs(Artifacts) do
@@ -1675,7 +1675,7 @@ _G.StartArtifactFarm = function()
     Player.Character:PivotTo(_G.ArtifactSpots["Spot " .. tostring(_G.CurrentSpot)])
     task.wait(1)
 
-    StartAutoFish()
+    _G.ToggleAutoClick(true)
     _G.AutoFishStarted = true
 
     _G.ArtifactConnection = REFishCaught.OnClientEvent:Connect(function(fishName, data)
@@ -1706,7 +1706,7 @@ _G.StartArtifactFarm = function()
                 end
             else
                 updateParagraph("Auto Farm Artifact", "All Artifacts collected! Unlocking Temple...")
-                StopAutoFish()
+                _G.ToggleAutoClick(false)
                 task.wait(1.5)
                 if typeof(_G.UnlockTemple) == "function" then
                     _G.UnlockTemple()
