@@ -1299,7 +1299,7 @@ end
 
 task.spawn(monitorAutoTP)
 
-local selectedIsland = "Machine"
+local selectedIsland = "Hallowen Bay"
 local isAutoFarmRunning = true
 
 local islandCodes = {
