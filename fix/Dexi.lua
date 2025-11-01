@@ -868,6 +868,34 @@ _G.FishSec:Button({
 
 _G.FishSec:Space()
 
+_G.FishSec:Button({
+    Title = "Respawn Player",
+    Justify = "Center",
+    Callback = function()
+        -- Cek apakah karakter ada
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+
+            -- Simpan posisi terakhir (jika ingin respawn di tempat yang sama)
+            local lastPosition = LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.CFrame
+
+            -- Paksa respawn
+            humanoid.Health = 0
+
+            -- Tunggu karakter baru
+            LocalPlayer.CharacterAdded:Wait()
+
+            -- (Opsional) Kembalikan ke posisi sebelumnya
+            task.wait(0.5)
+            if lastPosition and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character:MoveTo(lastPosition.Position)
+            end
+        else
+            warn("Character tidak ditemukan!")
+        end
+    end
+})
+
 -------------------------------------------
 ----- =======[ AUTO FAV TAB ]
 -------------------------------------------

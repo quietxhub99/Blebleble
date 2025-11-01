@@ -815,57 +815,32 @@ _G.FishSec:Button({
 _G.FishSec:Space()
 
 _G.FishSec:Button({
-    Title = "Auto Enchant Rod",
+    Title = "Respawn Player",
     Justify = "Center",
-    Icon = "",
     Callback = function()
-        local ENCHANT_POSITION = Vector3.new(3231, -1303, 1402)
-		local char = workspace:WaitForChild("Characters"):FindFirstChild(LocalPlayer.Name)
-		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        -- Cek apakah karakter ada
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
 
-		if not hrp then
-			NotifyError("Auto Enchant Rod", "Failed to get character HRP.")
-			return
-		end
+            -- Simpan posisi terakhir (jika ingin respawn di tempat yang sama)
+            local lastPosition = LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.CFrame
 
-		NotifyInfo("Preparing Enchant...", "Please manually place Enchant Stone into slot 5 before we begin...", 5)
+            -- Paksa respawn
+            humanoid.Health = 0
 
-		task.wait(3)
+            -- Tunggu karakter baru
+            LocalPlayer.CharacterAdded:Wait()
 
-		local Player = game:GetService("Players").LocalPlayer
-		local slot5 = Player.PlayerGui.Backpack.Display:GetChildren()[10]
-
-		local itemName = slot5 and slot5:FindFirstChild("Inner") and slot5.Inner:FindFirstChild("Tags") and slot5.Inner.Tags:FindFirstChild("ItemName")
-
-		if not itemName or not itemName.Text:lower():find("enchant") then
-			NotifyError("Auto Enchant Rod", "Slot 5 does not contain an Enchant Stone.")
-			return
-		end
-
-		NotifyInfo("Enchanting...", "It is in the process of Enchanting, please wait until the Enchantment is complete", 7)
-
-		local originalPosition = hrp.Position
-		task.wait(1)
-		hrp.CFrame = CFrame.new(ENCHANT_POSITION + Vector3.new(0, 5, 0))
-		task.wait(1.2)
-
-		local equipRod = net:WaitForChild("RE/EquipToolFromHotbar")
-		local activateEnchant = net:WaitForChild("RE/ActivateEnchantingAltar")
-
-		pcall(function()
-			equipRod:FireServer(5)
-			task.wait(0.5)
-			activateEnchant:FireServer()
-			task.wait(7)
-			NotifySuccess("Enchant", "Successfully Enchanted!", 3)
-		end)
-
-		task.wait(0.9)
-		hrp.CFrame = CFrame.new(originalPosition + Vector3.new(0, 3, 0))
+            -- (Opsional) Kembalikan ke posisi sebelumnya
+            task.wait(0.5)
+            if lastPosition and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character:MoveTo(lastPosition.Position)
+            end
+        else
+            warn("Character tidak ditemukan!")
+        end
     end
 })
-
-_G.FishSec:Space()
 
 -------------------------------------------
 ----- =======[ AUTO FAV TAB ]
