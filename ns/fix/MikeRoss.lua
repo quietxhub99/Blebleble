@@ -1214,20 +1214,39 @@ local TierToRarityName = {
     [7] = "SECRET"
 }
 
-for _, item in ipairs(ReplicatedStorage.Items:GetChildren()) do
-    local ok, data = pcall(require, item)
-    if ok and data.Data and data.Data.Type == "Fish" then
-        local id = data.Data.Id
-        local name = data.Data.Name
-        local tier = data.Data.Tier or 1
+local ItemContainers = {
+    ReplicatedStorage.Items,
+    ReplicatedStorage.Items:FindFirstChild("New Area"),
+    ReplicatedStorage.Items:FindFirstChild("BP"),
+    ReplicatedStorage.Items:FindFirstChild("Magma Update 2")
+        and ReplicatedStorage.Items["Magma Update 2"]:FindFirstChild("Fishies")
+}
 
-        local nameWithId = name .. " [ID:" .. id .. "]"
+-- ===============================
+-- AUTO FAV LOADER
+-- ===============================
 
-        GlobalFav.FishIdToName[id] = nameWithId
-        GlobalFav.FishNameToId[nameWithId] = id
-        GlobalFav.FishRarity[id] = tier
+for _, container in ipairs(ItemContainers) do
+    if container then
+        for _, item in ipairs(container:GetChildren()) do
+            if item:IsA("ModuleScript") then
+                local ok, data = pcall(require, item)
 
-        table.insert(GlobalFav.FishNames, nameWithId)
+                if ok and data and data.Data and data.Data.Type == "Fish" then
+                    local id = data.Data.Id
+                    local name = data.Data.Name
+                    local tier = data.Data.Tier or 1
+
+                    local nameWithId = string.format("%s [ID:%d]", name, id)
+
+                    GlobalFav.FishIdToName[id] = nameWithId
+                    GlobalFav.FishNameToId[nameWithId] = id
+                    GlobalFav.FishRarity[id] = tier
+
+                    table.insert(GlobalFav.FishNames, nameWithId)
+                end
+            end
+        end
     end
 end
 
