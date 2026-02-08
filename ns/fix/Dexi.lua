@@ -4367,38 +4367,56 @@ local FishCategories = {
 }
 
 local function AutoPopulateCategories()
-    local itemsFolder = ReplicatedStorage:WaitForChild("Items")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local count = 0
-    
-    for _, module in pairs(itemsFolder:GetChildren()) do
-        if module:IsA("ModuleScript") then
-            local success, data = pcall(require, module)
-            
-            -- Cek Validasi: Apakah ini Ikan?
-            if success and data.Data and data.Data.Type == "Fish" then
-                local tier = data.Data.Tier or 1
-                local fishName = data.Data.Name
-                
-                -- Mapping Tier Angka ke Kategori Webhook
-                -- 7 = SECRET, 6 = Mythic, 5 = Legendary
-                
-                if tier == 7 then
-                    table.insert(FishCategories["Secret"], fishName)
-                    count = count + 1
-                elseif tier == 6 then
-                    table.insert(FishCategories["Mythic"], fishName)
-                    count = count + 1
-                elseif tier == 5 then
-                    table.insert(FishCategories["Legendary"], fishName)
-                    count = count + 1
+
+    -- ===============================
+    -- LIST SEMUA CONTAINER ITEM
+    -- ===============================
+
+    local ItemContainers = {
+        ReplicatedStorage:WaitForChild("Items"),
+        ReplicatedStorage.Items:FindFirstChild("New Area"),
+        ReplicatedStorage.Items:FindFirstChild("BP"),
+        ReplicatedStorage.Items:FindFirstChild("Magma Update 2")
+            and ReplicatedStorage.Items["Magma Update 2"]:FindFirstChild("Fishies")
+    }
+
+    -- ===============================
+    -- SCAN SEMUA PATH
+    -- ===============================
+
+    for _, container in ipairs(ItemContainers) do
+        if container then
+            for _, module in pairs(container:GetChildren()) do
+                if module:IsA("ModuleScript") then
+                    local success, data = pcall(require, module)
+
+                    -- Validasi Fish
+                    if success and data and data.Data and data.Data.Type == "Fish" then
+                        local tier = data.Data.Tier or 1
+                        local fishName = data.Data.Name
+
+                        -- Mapping Tier → Kategori Webhook
+                        if tier == 7 then
+                            table.insert(FishCategories["Secret"], fishName)
+                            count = count + 1
+                        elseif tier == 6 then
+                            table.insert(FishCategories["Mythic"], fishName)
+                            count = count + 1
+                        elseif tier == 5 then
+                            table.insert(FishCategories["Legendary"], fishName)
+                            count = count + 1
+                        end
+
+                        -- Debug (optional)
+                        -- print("Loaded:", fishName, "Tier:", tier)
+                    end
                 end
-                
-                -- Debug: Uncomment jika ingin lihat ikan apa saja yang masuk
-                -- print("Loaded: " .. fishName .. " [Tier " .. tier .. "]")
             end
         end
     end
-    
+
     warn("Webhook System: Berhasil mendeteksi " .. count .. " ikan High-Tier secara otomatis.")
 end
 
