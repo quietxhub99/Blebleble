@@ -5615,7 +5615,9 @@ local islandCoords = {
     ["17"] = {name = "Ancient Ruin", position = Vector3.new(6052, -546, 4427) },
     ["21"] = {name = "Pirate Cove", position = Vector3.new(3497, 4, 3447) },
     ["83"] = {name = "Crystal Pessage", position = Vector3.new(3433, -299, 3365) },
-    ["72"] = {name = "Crystal Depths", position = Vector3.new(5494, -905, 15389) }
+    ["72"] = {name = "Crystal Depths", position = Vector3.new(5494, -905, 15389) },
+    ["71"] = {name = "Lava Basin", position = Vector3.new(785.185852, 75.0568619, -10118.6631) }
+    
 }
 
 local islandNames = {}
