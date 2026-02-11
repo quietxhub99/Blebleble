@@ -5876,6 +5876,90 @@ Utils:Dropdown({
 ----- =======[ SETTINGS TAB ]
 -------------------------------------------
 
+-- ===============================
+-- FPS CONTROLLER (REALTIME)
+-- ===============================
+
+_G.FPSController = {
+    Enabled = true,
+    TargetFPS = 60,
+    _LastApplied = nil
+}
+
+local function applyFPSCap(fps)
+    fps = math.clamp(tonumber(fps) or 60, 30, 240)
+
+    if _G.FPSController._LastApplied == fps then
+        return
+    end
+
+    if typeof(setfpscap) == "function" then
+        setfpscap(fps)
+    elseif typeof(set_fps_cap) == "function" then
+        set_fps_cap(fps)
+    else
+        warn("[FPS] Executor tidak mendukung FPS cap")
+        return
+    end
+
+    _G.FPSController._LastApplied = fps
+end
+
+-- Re-apply realtime (anti reset executor)
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.FPSController.Enabled then
+            applyFPSCap(_G.FPSController.TargetFPS)
+        end
+    end
+end)
+
+-- ===============================
+-- FPS DROPDOWN (PRESET ONLY)
+-- ===============================
+
+local FPS_OPTIONS = {
+    "30",
+    "60",
+    "120",
+    "240"
+}
+
+SettingsTab:Dropdown({
+    Title = "FPS Limit",
+    Values = FPS_OPTIONS,
+    Default = tostring(_G.FPSController.TargetFPS),
+    Callback = function(value)
+        local fps = tonumber(value)
+        if fps then
+            _G.FPSController.TargetFPS = fps
+            applyFPSCap(fps)
+        end
+    end
+})
+
+-- ===============================
+-- FPS ENABLE / DISABLE
+-- ===============================
+
+SettingsTab:Toggle({
+    Title = "Enable FPS Lock",
+    Value = true,
+    Callback = function(v)
+        _G.FPSController.Enabled = v
+
+        if v then
+            applyFPSCap(_G.FPSController.TargetFPS)
+        else
+            if typeof(setfpscap) == "function" then
+                setfpscap(0)
+            elseif typeof(set_fps_cap) == "function" then
+                set_fps_cap(0)
+            end
+        end
+    end
+})
+
 
 _G.AccConfig = SettingsTab:Section({
     Title = "Account Configuration",
