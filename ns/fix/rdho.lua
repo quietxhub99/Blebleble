@@ -1234,7 +1234,8 @@ _G.FishingController.FishingRodStarted = function(self, arg1, arg2)
 
         _G.clickThread = task.spawn(function()
             while _G.AutoFishState.IsActive and _G.AutoFishState.MinigameActive do
-                _G.performClick()
+                 task.wait(tonumber(_G.FINISH_DELAY))
+                 finishRemote:InvokeServer()
             end
         end)
     end
