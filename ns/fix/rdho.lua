@@ -1115,7 +1115,6 @@ _G.REFishCaught.OnClientEvent:Connect(function(fishName, info)
 end)
 
 function StartCast5X()
-    _G.StopFishing()
     local getPowerFunction = Constants.GetPower
     local perfectThreshold = 0.99
     local chargeStartTime = workspace:GetServerTimeNow()
