@@ -2779,7 +2779,7 @@ do
             or (_G.AutoEventTeleport.lastSpawnPos - pos).Magnitude > 3 then
 
                 _G.AutoEventTeleport.lastSpawnPos = pos
-                local targetCF = CFrame.new(pos + Vector3.new(0, 15, 0))
+                local targetCF = CFrame.new(pos + Vector3.new(0, 2, 0))
                 _G.SafeTeleport(targetCF)
 
                 if _G.ToggleBlockOnce then
