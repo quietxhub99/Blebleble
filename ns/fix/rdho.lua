@@ -22,7 +22,6 @@ local miniGameRemote = net:WaitForChild("RF/RequestFishingMinigameStarted")
 local finishRemote = net:WaitForChild("RF/CatchFishCompleted")
 local Constants = require(ReplicatedStorage:WaitForChild("Shared", 20):WaitForChild("Constants"))
 
-Constants.CooldownTime = 0.001
 
 local Player = Players.LocalPlayer
 local XPBar = Player:WaitForChild("PlayerGui"):WaitForChild("XP")
@@ -6300,6 +6299,8 @@ SettingsTab:Button({
 })
 
 SettingsTab:Space()
+
+
 
 task.defer(function()
     task.wait(0.5)

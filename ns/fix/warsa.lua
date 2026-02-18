@@ -1681,6 +1681,75 @@ _G.FishSec:Button({
 
 _G.FishSec:Space()
 
+_G.DisplayNotif = game:GetService("Players").LocalPlayer.PlayerGui["Small Notification"].Display
+
+_G.HideNotif = _G.FishAdvenc:Toggle({
+    Title = "Hide Notification",
+    Value = false,
+    Callback = function(state)
+        if state then
+            _G.DisplayNotif.Visible = false
+        else 
+            _G.DisplayNotif.Visible = true
+        end
+    end
+})
+
+_G.DisableAnimations = false
+
+task.spawn(function()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+    local Players = game:GetService("Players")
+    
+    local success, AnimController = pcall(require, ReplicatedStorage:WaitForChild("Controllers"):WaitForChild("AnimationController"))
+    
+    if success and AnimController then
+        local originalPlayAnimation = AnimController.PlayAnimation
+        
+        AnimController.PlayAnimation = function(self, ...)
+            if _G.DisableAnimations then
+                if self.DestroyActiveAnimationTracks then
+                    self:DestroyActiveAnimationTracks()
+                end
+                return nil 
+            end
+            return originalPlayAnimation(self, ...)
+        end
+        
+        task.spawn(function()
+            while task.wait(1) do
+                if _G.DisableAnimations then
+                    pcall(function()
+                        local char = Players.LocalPlayer.Character
+                        local hum = char and char:FindFirstChild("Humanoid")
+                        local animator = hum and hum:FindFirstChild("Animator")
+                        if animator then
+                            for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                                track:Stop()
+                            end
+                        end
+                    end)
+                end
+            end
+        end)
+    end
+end)
+
+
+_G.FishAdvenc:Space()
+
+_G.Animate = _G.FishAdvenc:Toggle({
+    Title = "Disable Animation",
+    Desc = "Disable Rod Animation",
+    Value = false,
+    Callback = function(state)
+        _G.DisableAnimations = state
+    end
+})
+
+myConfig:Register("AnimationDisable", _G.Animate)
+
 
 -- =======================================================
 -- == AUTO CUTSCENE REMOVER (TOGGLE + HOOK)
@@ -3462,198 +3531,6 @@ _G.RuinSec:Button({
         _G.UnlockRuin()
     end
 })
-
--------------------------------------------
------ =======[ IRON CAVERN FARMING (SMART) ]
--------------------------------------------
-
--- 1. Remote Unlock
-_G.REPlaceItems2 = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlaceCavernTotemItem"]
-_G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
-
--- 2. Daftar Ikan Target
-_G.TargetGuppies = {
-    ["Guest Guppy"] = false,
-    ["Builderman Guppy"] = false,
-    ["Brighteyes Guppy"] = false,
-    ["Shedletsky Guppy"] = false
-}
-
--- 3. Lokasi Farming (Satu Spot Saja)
-_G.IronCafeSpot = CFrame.new(-8797.98438, -585.000061, 81.8659973, 0.621304512, 7.69412338e-08, -0.783569217, -8.01423212e-08, 1, 3.4647158e-08, 0.783569217, 4.12706207e-08, 0.621304512) 
-
--- 4. State & Save File
-_G.CavernFarmEnabled = false
-_G.username = game:GetService("Players").LocalPlayer.Name
-_G.saveFileCafe = _G.username .. "_IronCafe_Progress.json"
-
--- Fungsi Load Progress
-local function loadCafeProgress()
-    if isfile(_G.saveFileCafe) then
-        local success, data = pcall(function()
-            return game:GetService("HttpService"):JSONDecode(readfile(_G.saveFileCafe))
-        end)
-        if success and type(data) == "table" then
-            -- Update status ikan yang sudah didapat
-            for fish, status in pairs(data) do
-                if _G.TargetGuppies[fish] ~= nil then
-                    _G.TargetGuppies[fish] = status
-                end
-            end
-        end
-    end
-end
-
--- Fungsi Save Progress
-local function saveCafeProgress()
-    writefile(_G.saveFileCafe, game:GetService("HttpService"):JSONEncode(_G.TargetGuppies))
-end
-
--- Helper: Hitung berapa ikan yang sudah didapat
-local function countCollectedGuppies()
-    local count = 0
-    for _, caught in pairs(_G.TargetGuppies) do
-        if caught then count = count + 1 end
-    end
-    return count
-end
-
--- Helper: Update Paragraph UI
-local function updateCafeUI()
-    if _G.CavernParagraph then
-        local statusText = ""
-        for fish, caught in pairs(_G.TargetGuppies) do
-            local check = caught and "✅" or "❌"
-            statusText = statusText .. check .. " " .. fish .. "\n"
-        end
-        
-        local total = countCollectedGuppies()
-        _G.CavernParagraph:SetDesc(string.format("Status (%d/4 Found):\n%s", total, statusText))
-    end
-end
-
--- 5. Fungsi Unlock (Dijalankan saat semua ikan terkumpul)
-_G.UnlockCafe = function()
-    task.spawn(function()
-        NotifyInfo("The Iron Cafe", "All Guppies found! Unlocking door...")
-        
-        -- Loop kirim semua ikan ke totem
-        for fishName, _ in pairs(_G.TargetGuppies) do
-            _G.REPlaceItems2:FireServer(fishName)
-            task.wait(2.1) -- Delay aman agar server memproses
-        end
-
-        NotifySuccess("The Iron Cafe", "Door Unlocked! Farming Stopped.")
-        _G.StopCavernFarm()
-        
-        -- Hapus file save karena misi selesai
-        if isfile(_G.saveFileCafe) then delfile(_G.saveFileCafe) end
-    end)
-end
-
--- 6. Fungsi Utama START
-_G.StartCavernFarm = function()
-    if _G.CavernFarmEnabled then return end
-    _G.CavernFarmEnabled = true
-
-    -- Load data lama
-    loadCafeProgress()
-    updateCafeUI()
-
-    -- Cek jika sudah selesai dari awal
-    if countCollectedGuppies() >= 4 then
-        _G.UnlockCafe()
-        return
-    end
-
-    -- Teleport ke Spot
-    local Player = game.Players.LocalPlayer
-    if Player.Character then
-        Player.Character:PivotTo(_G.IronCafeSpot)
-    end
-    
-    -- Mulai Auto Fish (Pilih metode terbaik Anda, misal 5X)
-    if StartAutoFish5X then
-        StartAutoFish5X()
-    elseif _G.ToggleAutoClick then
-        _G.ToggleAutoClick(true)
-    end
-
-    NotifySuccess("Iron Cafe", "Farming started at Spot 1...")
-
-    -- Listener Ikan
-    if _G.CavernConnection then _G.CavernConnection:Disconnect() end
-    _G.CavernConnection = _G.REFishCaught.OnClientEvent:Connect(function(fishName)
-        -- Cek apakah ikan yang ditangkap adalah salah satu Guppy target
-        if _G.TargetGuppies[fishName] == false then
-            _G.TargetGuppies[fishName] = true -- Tandai sudah dapat
-            saveCafeProgress()
-            updateCafeUI()
-            
-            NotifySuccess("Iron Cafe", "Caught: " .. fishName)
-
-            -- Cek apakah semua sudah terkumpul
-            if countCollectedGuppies() >= 4 then
-                if StopAutoFish5X then StopAutoFish5X() end
-                if StopCast then StopCast() end
-                _G.UnlockCafe()
-            end
-        end
-    end)
-end
-
--- 7. Fungsi Utama STOP
-_G.StopCavernFarm = function()
-    _G.CavernFarmEnabled = false
-    
-    -- Matikan Auto Fish
-    if StopAutoFish5X then StopAutoFish5X() end
-    if _G.ToggleAutoClick then _G.ToggleAutoClick(false) end
-    
-    -- Matikan Listener
-    if _G.CavernConnection then
-        _G.CavernConnection:Disconnect()
-        _G.CavernConnection = nil
-    end
-    
-    updateCafeUI()
-    if _G.CavernParagraph then
-        _G.CavernParagraph:SetTitle("Auto Iron Cafe (Stopped)")
-    end
-end
-
--- ================= UI ELEMENTS =================
-
-_G.CavernParagraph = _G.CavernSec:Paragraph({
-    Title = "Auto The Iron Cafe",
-    Desc = "Waiting for activation...",
-    Color = "Green",
-})
-
-_G.CavernSec:Space()
-
-_G.CavernSec:Toggle({
-    Title = "Auto Farm Iron Cafe",
-    Desc = "collect 4 Guppies, unlock door.",
-    Default = false,
-    Callback = function(state)
-        if state then
-            _G.StartCavernFarm()
-        else
-            _G.StopCavernFarm()
-        end
-    end
-})
-
-_G.CavernSec:Button({
-    Title = "Manual Unlock",
-    Desc = "Click if you already have all fishes",
-    Callback = function()
-        _G.UnlockCafe()
-    end
-})
-
-
 
 -------------------------------------------
 ----- =======[ MASS TRADE TAB ]
