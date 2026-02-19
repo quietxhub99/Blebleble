@@ -524,7 +524,7 @@ _G.isRecasting5x = false
 _G.STUCK_TIMEOUT = 10
 _G.AntiStuckEnabled = true
 _G.lastFishTime = tick()
-_G.FINISH_DELAY = 3.5
+_G.FINISH_DELAY = 1.2
 _G.fishCounter = 0
 _G.sellThreshold = 10
 _G.sellActive = true
@@ -2017,7 +2017,7 @@ end
 if _G.monitorTPThread then task.cancel(_G.monitorTPThread) end
 _G.monitorTPThread = task.spawn(monitorAutoTP)
 
-local selectedIsland = "Vulcano"
+local selectedIsland = "Ancient Ruin"
 local isAutoFarmRunning = true
 
 local islandCodes = {
