@@ -956,101 +956,75 @@ INI AUTO FISH LEGIT
 
 _G.RunService = game:GetService("RunService")
 _G.ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 _G.FishingControllerPath = _G.ReplicatedStorage.Controllers.FishingController
 _G.FishingController = require(_G.FishingControllerPath)
 
 _G.AutoFishingControllerPath = _G.ReplicatedStorage.Controllers.AutoFishingController
 _G.AutoFishingController = require(_G.AutoFishingControllerPath)
-_G.Replion = require(_G.ReplicatedStorage.Packages.Replion)
+
+-- REPLION DIHAPUS TOTAL
 
 _G.AutoFishState = {
-    IsActive = false,
-    MinigameActive = false
+    IsActive = false
 }
 
-_G.SPEED_LEGIT = 0.05
+_G.SPEED_LEGIT = 0.5
+_G.clickThread = nil
+
+-- =====================================
+-- PERFORM CLICK
+-- =====================================
 
 function _G.performClick()
     _G.FishingController:RequestFishingMinigameClick()
-    task.wait(tonumber(_G.SPEED_LEGIT))
+    task.wait(_G.SPEED_LEGIT)
 end
 
-_G.originalAutoFishingStateChanged = _G.AutoFishingController.AutoFishingStateChanged
-function _G.forceActiveVisual(arg1)
-    _G.originalAutoFishingStateChanged(true)
-end
-
-_G.AutoFishingController.AutoFishingStateChanged = _G.forceActiveVisual
+-- =====================================
+-- FORCE AUTO FISHING STATE TRUE
+-- =====================================
 
 function _G.ensureServerAutoFishingOn()
-    local replionData = _G.Replion.Client:WaitReplion("Data")
-    local currentAutoFishingState = replionData:GetExpect("AutoFishing")
+    local Net = require(_G.ReplicatedStorage.Packages.Net)
+    local UpdateAutoFishingRemote = Net:RemoteFunction("UpdateAutoFishingState")
 
-    if not currentAutoFishingState then
-        local remoteFunctionName = "UpdateAutoFishingState"
-        local Net = require(_G.ReplicatedStorage.Packages.Net)
-        local UpdateAutoFishingRemote = Net:RemoteFunction(remoteFunctionName)
-
-        local success, result = pcall(function()
-            return UpdateAutoFishingRemote:InvokeServer(true)
+    task.spawn(function()
+        pcall(function()
+            UpdateAutoFishingRemote:InvokeServer(true)
         end)
-
-        if success then
-        else
-        end
-    else
-    end
+    end)
 end
 
--- ===================================================================
--- BAGIAN 2: AUTO CLICK MINIGAME
--- ===================================================================
+-- =====================================
+-- TOGGLE
+-- =====================================
 
-_G.originalRodStarted = _G.FishingController.FishingRodStarted
-_G.originalFishingStopped = _G.FishingController.FishingStopped
-_G.clickThread = nil
+function _G.ToggleAutoClick(state)
 
--- Hook FishingRodStarted (Minigame Aktif)
-_G.FishingController.FishingRodStarted = function(self, arg1, arg2)
-    _G.originalRodStarted(self, arg1, arg2)
+    _G.AutoFishState.IsActive = state
 
-    if _G.AutoFishState.IsActive and not _G.AutoFishState.MinigameActive then
-        _G.AutoFishState.MinigameActive = true
+    if state then
+
+        _G.ensureServerAutoFishingOn()
 
         if _G.clickThread then
             task.cancel(_G.clickThread)
         end
 
         _G.clickThread = task.spawn(function()
-            while _G.AutoFishState.IsActive and _G.AutoFishState.MinigameActive do
-                 task.wait(tonumber(_G.FINISH_DELAY))
-                 finishRemote:InvokeServer()
+            while _G.AutoFishState.IsActive do
+                _G.performClick()
             end
         end)
-    end
-end
 
-_G.FishingController.FishingStopped = function(self, arg1)
-    _G.originalFishingStopped(self, arg1)
-
-    if _G.AutoFishState.MinigameActive then
-        _G.AutoFishState.MinigameActive = false
-        task.wait(1)
-        _G.ensureServerAutoFishingOn()
-    end
-end
-
-function _G.ToggleAutoClick(shouldActivate)
-    _G.AutoFishState.IsActive = shouldActivate
-
-    if shouldActivate then
-        _G.ensureServerAutoFishingOn()
     else
+
         if _G.clickThread then
             task.cancel(_G.clickThread)
             _G.clickThread = nil
         end
-        _G.AutoFishState.MinigameActive = false
+
     end
 end
 
