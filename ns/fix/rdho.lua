@@ -1283,6 +1283,73 @@ _G.FishSec:Button({
     end
 })
 
+_G.DisplayNotif = game:GetService("Players").LocalPlayer.PlayerGui["Small Notification"].Display
+
+_G.HideNotif = _G.FishSec:Toggle({
+    Title = "Hide Notification",
+    Value = false,
+    Callback = function(state)
+        if state then
+            _G.DisplayNotif.Visible = false
+        else 
+            _G.DisplayNotif.Visible = true
+        end
+    end
+})
+
+_G.DisableAnimations = false
+
+task.spawn(function()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+    local Players = game:GetService("Players")
+    
+    local success, AnimController = pcall(require, ReplicatedStorage:WaitForChild("Controllers"):WaitForChild("AnimationController"))
+    
+    if success and AnimController then
+        local originalPlayAnimation = AnimController.PlayAnimation
+        
+        AnimController.PlayAnimation = function(self, ...)
+            if _G.DisableAnimations then
+                if self.DestroyActiveAnimationTracks then
+                    self:DestroyActiveAnimationTracks()
+                end
+                return nil 
+            end
+            return originalPlayAnimation(self, ...)
+        end
+        
+        task.spawn(function()
+            while task.wait(1) do
+                if _G.DisableAnimations then
+                    pcall(function()
+                        local char = Players.LocalPlayer.Character
+                        local hum = char and char:FindFirstChild("Humanoid")
+                        local animator = hum and hum:FindFirstChild("Animator")
+                        if animator then
+                            for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                                track:Stop()
+                            end
+                        end
+                    end)
+                end
+            end
+        end)
+    end
+end)
+
+
+_G.FishSec:Space()
+
+_G.Animate = _G.FishSec:Toggle({
+    Title = "Disable Animation",
+    Desc = "Disable Rod Animation",
+    Value = false,
+    Callback = function(state)
+        _G.DisableAnimations = state
+    end
+})
+
 _G.FishSec:Space()
 
 
