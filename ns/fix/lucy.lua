@@ -26,13 +26,44 @@ local Constants = require(ReplicatedStorage:WaitForChild("Shared", 20):WaitForCh
 local Player = Players.LocalPlayer
 local XPBar = Player:WaitForChild("PlayerGui"):WaitForChild("XP")
 
-if Player and VirtualUser then
-    Player.Idled:Connect(function()
-        pcall(function()
-            VirtualUser:CaptureController(); VirtualUser:ClickButton2(Vector2.new())
-        end)
-    end)
+-- =========================
+-- STRONG ANTI AFK SYSTEM
+-- =========================
+
+_G.Players = game:GetService("Players")
+_G.VirtualUser = game:GetService("VirtualUser")
+
+local Player = _G.Players.LocalPlayer
+if not Player then return end
+
+if _G.AntiAFKConnection then
+    _G.AntiAFKConnection:Disconnect()
+    _G.AntiAFKConnection = nil
 end
+
+
+_G.AntiAFKConnection = Player.Idled:Connect(function()
+    pcall(function()
+        _G.VirtualUser:CaptureController()
+        _G.VirtualUser:ClickButton2(Vector2.new(0,0))
+        _G.VirtualUser:ClickButton1(Vector2.new(0,0))
+    end)
+end)
+
+if _G.AntiAFKLoop then
+    task.cancel(_G.AntiAFKLoop)
+end
+
+_G.AntiAFKLoop = task.spawn(function()
+    while task.wait(60) do
+        pcall(function()
+            _G.VirtualUser:CaptureController()
+            _G.VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            task.wait(0.1)
+            _G.VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        end)
+    end
+end)
 
 task.spawn(function()
     if XPBar then
