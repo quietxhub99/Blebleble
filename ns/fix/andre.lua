@@ -7,11 +7,12 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local VirtualUser = game:GetService("VirtualUser")
 local net = ReplicatedStorage:WaitForChild("Packages")
     :WaitForChild("_Index")
     :WaitForChild("sleitnick_net@0.2.0")
     :WaitForChild("net")
-local VirtualUser = game:GetService("VirtualUser")
+local Net = require(ReplicatedStorage.Packages.Net)
 local rodRemote = net:WaitForChild("RF/ChargeFishingRod")
 local miniGameRemote = net:WaitForChild("RF/RequestFishingMinigameStarted")
 local finishRemote = net:WaitForChild("RF/CatchFishCompleted")
@@ -3725,8 +3726,8 @@ end
 -------------------------------------------
 
 local GlobalFav = {
-    REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"],
-    REFavoriteItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FavoriteItem"],
+    REObtainedNewFishNotification = Net:RemoteEvent("ObtainedNewFishNotification"),
+    REFavoriteItem = Net:RemoteEvent("FavoriteItem"),
 
     FishIdToName = {},
     FishNameToId = {},
@@ -3761,8 +3762,8 @@ local fullInventoryDropdownList = {}
 -- Asumsi Modul game inti sudah tersedia (seperti Replion)
 local ItemUtility = _G.ItemUtility or require(ReplicatedStorage.Shared.ItemUtility) 
 local ItemStringUtility = _G.ItemStringUtility or require(ReplicatedStorage.Modules.ItemStringUtility)
-local InitiateTrade = net:WaitForChild("RF/InitiateTrade") 
-local RFAwaitTradeResponse = net:WaitForChild("RF/AwaitTradeResponse") 
+local InitiateTrade = Net:RemoteFunction("InitiateTrade") 
+local RFAwaitTradeResponse = Net:RemoteFunction("AwaitTradeResponse") 
 
 
 local function getPlayerListV2()
