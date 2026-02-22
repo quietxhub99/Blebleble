@@ -12,14 +12,11 @@ local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Madind
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local net = ReplicatedStorage:WaitForChild("Packages")
-	:WaitForChild("_Index")
-	:WaitForChild("sleitnick_net@0.2.0")
-	:WaitForChild("net")
+local Net = require(ReplicatedStorage.Packages.Net)
 
-local rodRemote = net:WaitForChild("RF/ChargeFishingRod")
-local miniGameRemote = net:WaitForChild("RF/RequestFishingMinigameStarted")
-local finishRemote = net:WaitForChild("RF/CatchFishCompleted")
+local rodRemote = Net:RemoteFunction("ChargeFishingRod")
+local miniGameRemote = Net:RemoteFunction("RequestFishingMinigameStarted")
+local finishRemote = Net:RemoteFunction("CatchFishCompleted")
 local Constants = require(ReplicatedStorage:WaitForChild("Shared", 20):WaitForChild("Constants"))
 
 local Player = Players.LocalPlayer
@@ -451,9 +448,9 @@ end
 ----- =======[ AUTO FISH TAB ]
 -------------------------------------------
 
-_G.REFishingStopped = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishingStopped"]
-_G.RFCancelFishingInputs = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/CancelFishingInputs"]
-_G.REUpdateChargeState = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/UpdateChargeState"]
+_G.REFishingStopped = Net:RemoteEvent("FishingStopped")
+_G.RFCancelFishingInputs = Net:RemoteFunction("CancelFishingInputs")
+_G.REUpdateChargeState = Net:RemoteEvent("UpdateChargeState")
 
 
 _G.StopFishing = function()
@@ -463,7 +460,7 @@ _G.StopFishing = function()
 end
 
 local FuncAutoFish = {
-    REReplicateTextEffect = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateTextEffect"],
+    REReplicateTextEffect = Net:RemoteEvent("ReplicateTextEffect"),
     autofish5x = false,
     perfectCast5x = true,
     fishingActive = false,
@@ -474,12 +471,10 @@ local FuncAutoFish = {
 
 
 
-_G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
-_G.REPlayFishingEffect = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlayFishingEffect"]
-_G.equipRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipToolFromHotbar"]
-_G.REObtainedNewFishNotification = ReplicatedStorage
-    .Packages._Index["sleitnick_net@0.2.0"]
-    .net["RE/ObtainedNewFishNotification"]
+_G.REFishCaught = Net:RemoteEvent("FishCaught")
+_G.REPlayFishingEffect = Net:RemoteEvent("PlayFishingEffect")
+_G.equipRemote = Net:RemoteEvent("EquipToolFromHotbar")
+_G.REObtainedNewFishNotification = Net:RemoteEvent("ObtainedNewFishNotification")
 
 
 _G.isSpamming = false
@@ -499,8 +494,8 @@ _G.sellActive = false
 _G.AutoFishHighQuality = false -- [[ VARIABEL KONTROL UNTUK FITUR BARU ]]
 
 _G.RemotePackage = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
-_G.RemoteFish = _G.RemotePackage["RE/ObtainedNewFishNotification"]
-_G.RemoteSell = _G.RemotePackage["RF/SellAllItems"]
+_G.RemoteFish = Net:RemoteEvent("ObtainedNewFishNotification")
+_G.RemoteSell = Net:RemoteFunction("SellAllItems")
 
 _G.RemoteFish.OnClientEvent:Connect(function(_, _, data)
     if _G.sellActive and data then
@@ -829,13 +824,13 @@ local v5 = {
 
 local v6 = {
     Events = {
-        REFishDone = v5.Net["RF/CatchFishCompleted"],
-        REEquip = v5.Net["RE/EquipToolFromHotbar"],
+        REFishDone = Net:RemoteFunction("CatchFishCompleted"),
+        REEquip = Net:RemoteEvent("EquipToolFromHotbar"),
     },
     Functions = {
-        ChargeRod = v5.Net["RF/ChargeFishingRod"],
-        StartMini = v5.Net["RF/RequestFishingMinigameStarted"],
-        Cancel = v5.Net["RF/CancelFishingInputs"],
+        ChargeRod = Net:RemoteFunction("ChargeFishingRod"),
+        StartMini = Net:RemoteFunction("RequestFishingMinigameStarted"),
+        Cancel = Net:RemoteFunction("CancelFishingInputs"),
     }
 }
 
@@ -1042,10 +1037,10 @@ _G.Perfection = _G.FishSec:Toggle({
         local LocalPlayer = Players.LocalPlayer
         if state then
             LocalPlayer:SetAttribute("Loading", nil)
-            game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RF/UpdateAutoFishingState"):InvokeServer(true)
+            Net:RemoteFunction("UpdateAutoFishingState"):InvokeServer(true)
 
         else
-            game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RF/UpdateAutoFishingState"):InvokeServer(false)
+            Net:RemoteFunction("UpdateAutoFishingState"):InvokeServer(false)
             LocalPlayer:SetAttribute("Loading", true)
         end
     end
@@ -1209,8 +1204,8 @@ _G.FishAdvenc:Input({
     end
 })
 
-local REEquipItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipItem"]
-local RFSellItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellItem"]
+local REEquipItem = Net:RemoteEvent("EquipItem")
+local RFSellItem = Net:RemoteFunction("SellItem")
 
 function ToggleAutoSellMythic(state)
     autoSellMythic = state
@@ -1268,7 +1263,7 @@ function sellAllFishes()
     end
 
     local originalPos = hrp.CFrame
-    local sellRemote = net:WaitForChild("RF/SellAllItems")
+    local sellRemote = Net:RemoteFunction("SellAllItems")
 
     task.spawn(function()
         NotifyInfo("Selling...", "I'm going to sell all the fish, please wait...", 3)
@@ -1350,8 +1345,8 @@ _G.FishAdvenc:Button({
         hrp.CFrame = CFrame.new(ENCHANT_POSITION + Vector3.new(0, 5, 0))
         task.wait(1.2)
 
-        local equipRod = net:WaitForChild("RE/EquipToolFromHotbar")
-        local activateEnchant = net:WaitForChild("RE/ActivateEnchantingAltar")
+        local equipRod = Net:RemoteEvent("EquipToolFromHotbar")
+        local activateEnchant = Net:RemoteEvent("ActivateEnchantingAltar")
 
         pcall(function()
             equipRod:FireServer(5)
@@ -2326,8 +2321,8 @@ end
 
 
 local GlobalFav = {
-    REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"],
-    REFavoriteItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FavoriteItem"],
+    REObtainedNewFishNotification = Net:RemoteEvent("ObtainedNewFishNotification"),
+    REFavoriteItem = Net:RemoteEvent("FavoriteItem"),
 
     FishIdToName = {},
     FishNameToId = {},
@@ -2625,8 +2620,8 @@ local fullInventoryDropdownList = {}
 -- Asumsi Modul game inti sudah tersedia (seperti Replion)
 local ItemUtility = _G.ItemUtility or require(ReplicatedStorage.Shared.ItemUtility) 
 local ItemStringUtility = _G.ItemStringUtility or require(ReplicatedStorage.Modules.ItemStringUtility)
-local InitiateTrade = net:WaitForChild("RF/InitiateTrade") 
-local RFAwaitTradeResponse = net:WaitForChild("RF/AwaitTradeResponse") 
+local InitiateTrade = Net:RemoteFunction("InitiateTrade")
+local RFAwaitTradeResponse = Net:RemoteFunction("AwaitTradeResponse") 
 
 -- Fungsi utilitas untuk mendapatkan daftar pemain
 local function getPlayerListV2()
@@ -2698,7 +2693,7 @@ end
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
-_G.REEquipItem = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipItem"]
+_G.REEquipItem = Net:RemoteEvent("EquipItem")
 
 
 mt.__namecall = newcclosure(function(self, ...)
@@ -3577,11 +3572,7 @@ local function randomDelay(min, max)
 end
 
 local function autoBuyWeather(weatherType)
-    local purchaseRemote = ReplicatedStorage:WaitForChild("Packages")
-        :WaitForChild("_Index")
-        :WaitForChild("sleitnick_net@0.2.0")
-        :WaitForChild("net")
-        :WaitForChild("RF/PurchaseWeatherEvent")
+    local purchaseRemote = Net:RemoteFunction("PurchaseWeatherEvent")
 
     task.spawn(function()
         while weatherActive[weatherType] do
@@ -3624,7 +3615,7 @@ local WeatherDropdown = Utils:Dropdown({
 
 myConfig:Register("WeatherDropdown", WeatherDropdown)
 
-_G.RFUpdateFishingRadar = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/UpdateFishingRadar"]
+_G.RFUpdateFishingRadar = Net:RemoteFunction("UpdateFishingRadar")
 
 _G.radarEnabled = false
 
@@ -3798,8 +3789,7 @@ local RodDelays = {
 
 local UserInputService = game:GetService("UserInputService")
 
-local REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
-["RE/ObtainedNewFishNotification"]
+local REObtainedNewFishNotification = Net:RemoteEvent("ObtainedNewFishNotification")
 
 local webhookPath = nil
 local FishWebhookEnabled = true
