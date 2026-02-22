@@ -1035,7 +1035,7 @@ local v5 = {
 local v6 = {
     Events = {
         REFishDone = Net:RemoteFunction("CatchFishCompleted"),
-        REEquip = Net:RemoteFunction("EquipToolFromHotbar"),
+        REEquip = Net:RemoteEvent("EquipToolFromHotbar"),
     },
     Functions = {
         ChargeRod = Net:RemoteFunction("ChargeFishingRod"),
