@@ -8,14 +8,11 @@ local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Madind
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local net = ReplicatedStorage:WaitForChild("Packages")
-    :WaitForChild("_Index")
-    :WaitForChild("sleitnick_net@0.2.0")
-    :WaitForChild("net")
+local Net = require(ReplicatedStorage.Packages.Net)
 local VirtualUser = game:GetService("VirtualUser")
-local rodRemote = net:WaitForChild("RF/ChargeFishingRod")
-local miniGameRemote = net:WaitForChild("RF/RequestFishingMinigameStarted")
-local finishRemote = net:WaitForChild("RF/CatchFishCompleted")
+local rodRemote = Net:RemoteFunction("ChargeFishingRod")
+local miniGameRemote = Net:RemoteFunction("RequestFishingMinigameStarted")
+local finishRemote = Net:RemoteFunction("CatchFishCompleted")
 local Constants = require(ReplicatedStorage:WaitForChild("Shared", 20):WaitForChild("Constants"))
 
 _G.Characters = workspace:FindFirstChild("Characters"):WaitForChild(LocalPlayer.Name)
@@ -461,20 +458,16 @@ _G.ItemStringUtility = require(
 -- REMOTES
 -------------------------------------------------
 _G.RFSpecialDialogueEvent =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RF/SpecialDialogueEvent"]
+    Net:RemoteFunction("SpecialDialogueEvent")
 
 _G.REEquipItem =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RE/EquipItem"]
+    Net:RemoteEvent("EquipItem")
 
 _G.REEquipToolFromHotbar =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RE/EquipToolFromHotbar"]
+    Net:RemoteEvent("EquipToolFromHotbar")
 
 _G.RFRedeemGift =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RF/RedeemGift"]
+    Net:RemoteFunction("RedeemGift")
 
 -------------------------------------------------
 -- GLOBAL STATE
@@ -1052,20 +1045,10 @@ _G.ItemStringUtility = require(
 -- REMOTES
 -------------------------------------------------
 _G.RFSpecialDialogueEvent =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RF/SpecialDialogueEvent"]
-
-_G.REEquipItem =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RE/EquipItem"]
-
-_G.REEquipToolFromHotbar =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RE/EquipToolFromHotbar"]
+    Net:RemoteFunction("SpecialDialogueEvent")
 
 _G.RFRedeemGift =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RF/RedeemGift"]
+    Net:RemoteFunction("RedeemGift")
 
 -------------------------------------------------
 -- GLOBAL STATE
@@ -1245,9 +1228,9 @@ _G.CEvent:Toggle({
 ----- =======[ AUTO FISH TAB ]
 -------------------------------------------
 
-_G.REFishingStopped = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishingStopped"]
-_G.RFCancelFishingInputs = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/CancelFishingInputs"]
-_G.REUpdateChargeState = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/UpdateChargeState"]
+_G.REFishingStopped = Net:RemoteEvent("FishingStopped")
+_G.RFCancelFishingInputs = Net:RemoteFunction("CancelFishingInputs")
+_G.REUpdateChargeState = Net:RemoteEvent("UpdateChargeState")
 
 
 _G.StopFishing = function()
@@ -1256,7 +1239,7 @@ _G.StopFishing = function()
 end
 
 local FuncAutoFish = {
-    REReplicateTextEffect = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateTextEffect"],
+    REReplicateTextEffect = Net:RemoteEvent("ReplicateTextEffect"),
     autofish5x = false,
     perfectCast5x = true,
     fishingActive = false,
@@ -1267,12 +1250,10 @@ local FuncAutoFish = {
 
 
 
-_G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
-_G.REPlayFishingEffect = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlayFishingEffect"]
-_G.equipRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipToolFromHotbar"]
-_G.REObtainedNewFishNotification = ReplicatedStorage
-    .Packages._Index["sleitnick_net@0.2.0"]
-    .net["RE/ObtainedNewFishNotification"]
+_G.REFishCaught = Net:RemoteEvent("FishCaught")
+_G.REPlayFishingEffect = Net:RemoteEvent("PlayFishingEffect")
+_G.equipRemote = Net:RemoteEvent("EquipToolFromHotbar")
+_G.REObtainedNewFishNotification = Net:RemoteEvent("ObtainedNewFishNotification")
 
 
 _G.isSpamming = false
@@ -1297,8 +1278,8 @@ _G.CastTimeoutValue = 0.01
 
 
 _G.RemotePackage = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
-_G.RemoteFish = _G.RemotePackage["RE/ObtainedNewFishNotification"]
-_G.RemoteSell = _G.RemotePackage["RF/SellAllItems"]
+_G.RemoteFish = Net:RemoteEvent("ObtainedNewFishNotification")
+_G.RemoteSell = Net:RemoteFunction("SellAllItems")
 
 _G.RemoteFish.OnClientEvent:Connect(function(_, _, data)
     if _G.sellActive and data then
@@ -1622,13 +1603,13 @@ local v5 = {
 
 local v6 = {
     Events = {
-        REFishDone = v5.Net["RF/CatchFishCompleted"],
-        REEquip = v5.Net["RE/EquipToolFromHotbar"],
+        REFishDone = Net:RemoteFunction("CatchFishCompleted"),
+        REEquip = Net:RemoteEvent("EquipToolFromHotbar"),
     },
     Functions = {
-        ChargeRod = v5.Net["RF/ChargeFishingRod"],
-        StartMini = v5.Net["RF/RequestFishingMinigameStarted"],
-        Cancel = v5.Net["RF/CancelFishingInputs"],
+        ChargeRod = Net:RemoteFunction("ChargeFishingRod"),
+        StartMini = Net:RemoteFunction("RequestFishingMinigameStarted"),
+        Cancel = Net:RemoteFunction("CancelFishingInputs"),
     }
 }
 
@@ -1993,8 +1974,8 @@ _G.InvenSize = _G.FishAdvenc:Input({
 
 myConfig:Register("InventorySize", _G.InvenSize)
 
-local REEquipItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipItem"]
-local RFSellItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellItem"]
+local REEquipItem = Net:RemoteEvent("EquipItem")
+local RFSellItem = Net:RemoteFunction("SellItem")
 
 function ToggleAutoSellMythic(state)
     autoSellMythic = state
@@ -2052,7 +2033,7 @@ function sellAllFishes()
     end
 
     local originalPos = hrp.CFrame
-    local sellRemote = net:WaitForChild("RF/SellAllItems")
+    local sellRemote = Net:RemoteFunction("SellAllItems")
 
     task.spawn(function()
         NotifyInfo("Selling...", "I'm going to sell all the fish, please wait...", 3)
@@ -2083,402 +2064,6 @@ _G.FishAdvenc:Button({
 })
 
 _G.FishSec:Space()
-
--- =======================================================
--- == FAKE FISHING: VISUAL + INVENTORY UI FIX
--- =======================================================
-
--- 1. SERVICES & PLAYERS
-_G.ReplicatedStorage = game:GetService("ReplicatedStorage")
-_G.Players = game:GetService("Players")
-_G.HttpService = game:GetService("HttpService")
-_G.LocalPlayer = _G.Players.LocalPlayer
-
--------------------------------------------
------ =======[ SUPER FISHING (FAKE) ]
--------------------------------------------
-
-_G.FakeFishSection = AutoFish:Section({ 
-    Title = "Super Fishing (Developer Only)", 
-    TextSize = 22, 
-    TextXAlignment = "Center", 
-    Opened = false 
-})
-
-local fakeFishState = {
-    enabled = false,
-    thread = nil,
-    delay = 0.05,
-    stepDelay = 0.05,
-    FishDB_List = {},
-    FishDB_ByName = {},
-    Area_FishMap = {},
-    loaded = false,
-    selectedRarities = {},
-    injectToInventory = true,
-    useGolden = true,
-    useRainbow = true,
-    useVisualEffects = true
-}
-
--- [HELPER] Load Data Ikan
-local function ensureFakeDataLoaded()
-    if fakeFishState.loaded then return end
-    
-    fakeFishState.FishDB_List = {}
-    fakeFishState.FishDB_ByName = {}
-    
-    local itemsFolder = ReplicatedStorage:FindFirstChild("Items")
-    if not itemsFolder then return end
-    
-    for _, module in pairs(itemsFolder:GetChildren()) do
-        if module:IsA("ModuleScript") then
-            local success, data = pcall(require, module)
-            if success and data and data.Data and data.Data.Type == "Fish" then
-                local detectedTier = data.Data.Tier or data.Data.Rarity or 1
-                if type(detectedTier) == "number" then
-                    local tierMap = { [1] = "Common", [2] = "Uncommon", [3] = "Rare", [4] = "Epic", [5] = "Legendary", [6] = "Mythic", [7] = "SECRET" }
-                    detectedTier = tierMap[detectedTier] or "Common"
-                end
-
-                local fishData = {
-                    Name = data.Data.Name,
-                    Id = data.Data.Id,
-                    WeightMin = (data.Weight and data.Weight.Default and data.Weight.Default.Min) or 1,
-                    WeightMax = (data.Weight and data.Weight.Default and data.Weight.Default.Max) or 10,
-                    Tier = tostring(detectedTier),
-                    TierNum = data.Data.Tier or 1
-                }
-                
-                table.insert(fakeFishState.FishDB_List, fishData)
-                fakeFishState.FishDB_ByName[data.Data.Name] = fishData
-            end
-        end
-    end
-
-    local areasSuccess, AreasData = pcall(function() return require(ReplicatedStorage:WaitForChild("Areas")) end)
-    if areasSuccess and type(AreasData) == "table" then
-        for areaName, areaData in pairs(AreasData) do
-            if areaData.Items then fakeFishState.Area_FishMap[areaName] = areaData.Items end
-        end
-    end
-    
-    fakeFishState.loaded = true
-end
-
--- [LOGIC] Pilih Ikan Smart
-local function getSmartFishFake()
-    local currentZone = Players.LocalPlayer:GetAttribute("LocationName") or "Fisherman Island"
-    local validFishList = {}
-
-    local function isTierMatch(fishTier)
-        if #fakeFishState.selectedRarities == 0 then return true end
-        return table.find(fakeFishState.selectedRarities, fishTier) ~= nil
-    end
-
-    local areaItemNames = fakeFishState.Area_FishMap[currentZone]
-    if areaItemNames then
-        for _, itemName in ipairs(areaItemNames) do
-            local fish = fakeFishState.FishDB_ByName[itemName]
-            if fish and isTierMatch(fish.Tier) then table.insert(validFishList, fish) end
-        end
-    end
-
-    if #validFishList == 0 then
-        for _, fish in ipairs(fakeFishState.FishDB_List) do
-            if isTierMatch(fish.Tier) then table.insert(validFishList, fish) end
-        end
-    end
-
-    if #validFishList > 0 then return validFishList[math.random(1, #validFishList)] end
-    return nil
-end
-
--- [UI UPDATE] Modifier Bars (Golden/Rainbow)
-local function updateModifierUI_Fake()
-    pcall(function()
-        local pg = Players.LocalPlayer:FindFirstChild("PlayerGui")
-        if not pg then return end
-        local backpack = pg:FindFirstChild("Backpack")
-        if not backpack then return end
-        local modifiers = backpack:FindFirstChild("Modifiers")
-        if not modifiers then return end
-        
-        -- Golden Logic
-        if fakeFishState.useGolden then
-            local golden = modifiers:FindFirstChild("Golden")
-            if golden and golden:FindFirstChild("Label") then
-                local maxGolden = 10 
-                local current = tonumber(golden.Label.Text:match("%d+")) or 0
-                if current >= maxGolden then current = 0 end
-                current = current + 1
-                golden.Label.Text = string.format("%d/%d", current, maxGolden)
-                golden.Visible = true
-
-                local fill = golden:FindFirstChild("Fill")
-                if fill then
-                    local gradient = fill:FindFirstChild("UIGradient")
-                    if gradient then
-                        local percent = current / maxGolden
-                        gradient.Offset = Vector2.new(0, -percent) -- Visual fix vertikal
-                    end
-                end
-            end
-        end
-        
-        -- Rainbow Logic
-        if fakeFishState.useRainbow then
-            local rainbow = modifiers:FindFirstChild("Rainbow")
-            if rainbow and rainbow:FindFirstChild("Label") then
-                local maxRainbow = 40
-                local current = tonumber(rainbow.Label.Text:match("%d+")) or 0
-                if current >= maxRainbow then current = 0 end
-                current = current + 1
-                rainbow.Label.Text = string.format("%d/%d", current, maxRainbow)
-                rainbow.Visible = true
-
-                local fill = rainbow:FindFirstChild("Fill")
-                if fill then
-                    local gradient = fill:FindFirstChild("UIGradient")
-                    if gradient then
-                        local percent = current / maxRainbow
-                        gradient.Offset = Vector2.new(0, -percent) -- Visual fix vertikal
-                    end
-                end
-            end
-        end
-    end)
-end
-
--- [UI UPDATE] Bag Size
-local function updateBagSizeUI_Fake()
-    pcall(function()
-        local pg = Players.LocalPlayer:FindFirstChild("PlayerGui")
-        if not pg then return end
-        
-        local function setLabel(lbl)
-            local current, max = lbl.Text:match("(%d+)/(%d+)")
-            if current and max then
-                current = tonumber(current) or 0
-                max = tonumber(4500)
-                lbl.Text = string.format("%d/%d", current + 1, max)
-            end
-        end
-
-        -- Lokasi 1: Backpack
-        local backpack = pg:FindFirstChild("Backpack")
-        if backpack and backpack:FindFirstChild("Display") then
-            local inv = backpack.Display:FindFirstChild("Inventory")
-            if inv and inv:FindFirstChild("BagSize") then setLabel(inv.BagSize) end
-        end
-        
-        -- Lokasi 2: Inventory UI Utama
-        local inventoryGui = pg:FindFirstChild("Inventory")
-        if inventoryGui and inventoryGui:FindFirstChild("Main") then
-            local top = inventoryGui.Main:FindFirstChild("Top")
-            if top and top:FindFirstChild("Options") and top.Options:FindFirstChild("Fish") then
-                local lbl = top.Options.Fish:FindFirstChild("Label")
-                if lbl and lbl:FindFirstChild("BagSize") then setLabel(lbl.BagSize) end
-            end
-        end
-    end)
-end
-
-local function getTierColorFake(tierNum)
-    local colorMap = {
-        [1] = ColorSequence.new(Color3.fromRGB(200, 200, 200)), -- Common
-        [2] = ColorSequence.new(Color3.fromRGB(0, 255, 0)),     -- Uncommon
-        [3] = ColorSequence.new(Color3.fromRGB(0, 195, 255)),   -- Rare
-        [4] = ColorSequence.new(Color3.fromRGB(255, 0, 255)),   -- Epic
-        [5] = ColorSequence.new(Color3.fromRGB(255, 215, 0)),   -- Legendary
-        [6] = ColorSequence.new(Color3.fromRGB(255, 85, 255)),  -- Mythic
-        [7] = ColorSequence.new(Color3.fromRGB(255, 0, 0))      -- SECRET
-    }
-    return colorMap[tierNum] or colorMap[1]
-end
-
--- MAIN LOOP FAKE FISHING
-local function startSuperFishingLoop()
-    local Net = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
-    
-    -- Definisi Event (Pastikan executor support firesignal)
-    local REBaitCastVisual = Net["RE/BaitCastVisual"]
-    local REBaitSpawned = Net["RE/BaitSpawned"]
-    local RECaughtFishVisual = Net["RE/CaughtFishVisual"]
-    local REFishCaught = Net["RE/FishCaught"]
-    local REObtainedNewFishNotification = Net["RE/ObtainedNewFishNotification"]
-    local REPlayFishingEffect = Net["RE/PlayFishingEffect"]
-    local REReplicateTextEffect = Net["RE/ReplicateTextEffect"]
-    
-    while fakeFishState.enabled do
-        local loopSuccess, loopError = pcall(function()
-            local char = Players.LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local head = char and char:FindFirstChild("Head")
-            
-            if not (char and hrp and head) then task.wait(0.5) return end
-            
-            local targetFish = getSmartFishFake()
-            if not targetFish then task.wait(0.5) return end
-            
-            local rnd = Random.new()
-            local syncedWeight = rnd:NextNumber(targetFish.WeightMin, targetFish.WeightMax)
-            local fakeUUID = HttpService:GenerateGUID(false)
-            
-            local originPos = hrp.Position
-            local lookVec = hrp.CFrame.LookVector
-            local castPos = originPos + (lookVec * 15) + Vector3.new(0, -5, 0)
-            
-            local equippedTool = char:FindFirstChild("!!!EQUIPPED_TOOL!!!") or char:FindFirstChildWhichIsA("Tool")
-            if not equippedTool then 
-                NotifyWarning("Super Fishing", "Please equip a rod first!")
-                task.wait(2) 
-                return 
-            end
-            
-            -- CAST
-            pcall(firesignal, REBaitCastVisual.OnClientEvent, Players.LocalPlayer, {
-                CastPosition = castPos, Origin = originPos + Vector3.new(0, 5, 0),
-                RodName = equippedTool.Name, CustomModel = false, EquippedToolModel = equippedTool,
-                ConnectingJoint = 4, NoFishingZone = false, BaitIdentifier = math.random(1, 5),
-                CosmeticTemplateId = -1, Power = 0.9 + (math.random() * 0.1)
-            })
-            pcall(firesignal, REBaitSpawned.OnClientEvent, Players.LocalPlayer, equippedTool.Name, castPos)
-            task.wait(fakeFishState.stepDelay)
-            
-            -- CAUGHT VISUAL
-            
-            
-            -- EFFECTS
-            if fakeFishState.useVisualEffects then
-                pcall(firesignal, REPlayFishingEffect.OnClientEvent, Players.LocalPlayer, head, 1)
-                local tierColor = getTierColorFake(targetFish.TierNum)
-                pcall(firesignal, REReplicateTextEffect.OnClientEvent, {
-                    UUID = HttpService:GenerateGUID(false), Channel = "All",
-                    TextData = { AttachTo = head, Text = "!", EffectType = "Exclaim", TextColor = tierColor },
-                    Duration = 0.5, Container = head
-                })
-            end
-            task.wait(fakeFishState.stepDelay)
-            
-            -- FISH CAUGHT LOGIC
-            pcall(firesignal, REFishCaught.OnClientEvent, targetFish.Name, { Weight = syncedWeight })
-            
-            pcall(firesignal, RECaughtFishVisual.OnClientEvent, Players.LocalPlayer, castPos, targetFish.Name, { Weight = syncedWeight }) 
-            
-            local fishMetadata = { Weight = syncedWeight }
-            if fakeFishState.useGolden then fishMetadata.golden = true end
-            if fakeFishState.useRainbow then fishMetadata.rainbow = true end
-            
-            -- NOTIFICATION
-            pcall(firesignal, REObtainedNewFishNotification.OnClientEvent, targetFish.Id, fishMetadata, {
-                CustomDuration = 5, Type = "Item", ItemType = "Fish", _newlyIndexed = false,
-                InventoryItem = { Id = targetFish.Id, Favorited = false, UUID = fakeUUID, Metadata = fishMetadata },
-                ItemId = targetFish.Id
-            }, false)
-            
-            -- UPDATE UI
-            updateModifierUI_Fake()
-            updateBagSizeUI_Fake()
-            
-            -- INJECT INVENTORY (CLIENT SIDE)
-            if fakeFishState.injectToInventory then
-                task.spawn(function()
-                    task.wait(0.3)
-                    pcall(function()
-                        local DataReplion = _G.Replion.Client:WaitReplion("Data")
-                        if not DataReplion then return end
-                        local currentInventory = DataReplion:Get({"Inventory", "Items"}) or {}
-                        local fakeInventoryItem = { Id = targetFish.Id, UUID = fakeUUID, Favorited = false, Metadata = fishMetadata }
-                        table.insert(currentInventory, fakeInventoryItem)
-                        DataReplion:Set({"Inventory", "Items"}, currentInventory)
-                    end)
-                end)
-            end
-            pcall(function()
-                        local PlayerGui = _G.LocalPlayer:FindFirstChild("PlayerGui")
-                        if PlayerGui then
-                            local label = PlayerGui.Backpack.Display.Inventory.Notification.Label
-                            local notif = PlayerGui.Backpack.Display.Inventory.Notification
-                            local currentNum = tonumber(label.Text) or 0
-                            label.Text = tostring(currentNum + 1)
-                            notif.Visible = true
-                        end
-                    end)
-        end)
-        
-        if not loopSuccess then task.wait(1) end
-        task.wait(fakeFishState.delay)
-    end
-end
-
--- [GUI ELEMENTS]
-
-_G.DEVELOPERS = {
-    ["littlestar3703"] = true,
-}
-
-_G.Lock1 = _G.FakeFishSection:Toggle({
-    Title = "Enable Super Fishing",
-    Desc = "high-speed fishing.",
-    Value = false,
-    Callback = function(val)
-        if val == true then
-            if not _G.DEVELOPERS[game.Players.LocalPlayer.Name] then
-                NotifyError("Unauthorized", "You are not allowed to use Super Fishing.")
-                return
-            end
-        end
-
-        fakeFishState.enabled = val
-        if fakeFishState.thread then 
-            task.cancel(fakeFishState.thread)
-            fakeFishState.thread = nil 
-        end
-
-        if val then
-            if not firesignal then
-                NotifyError("Error", "Your executor does not support 'firesignal'. Feature disabled.")
-                return
-            end
-            
-            ensureFakeDataLoaded()
-            if #fakeFishState.FishDB_List == 0 then
-                NotifyError("Error", "Failed to load fish data. Try rejoining.")
-                return
-            end
-            
-            fakeFishState.thread = task.spawn(startSuperFishingLoop)
-            NotifySuccess("Super Fishing", "Started! Enjoy the show.")
-        else
-            NotifyWarning("Super Fishing", "Stopped.")
-        end
-    end
-})
-
-_G.Lock2 = _G.FakeFishSection:Slider({
-    Title = "Catch Speed (Delay)",
-    Desc = "Lower = Faster (0.05 is insanely fast)",
-    Value = { Min = 0.01, Max = 1.0, Default = 0.05 },
-    Step = 0.01,
-    Callback = function(v)
-        fakeFishState.delay = tonumber(v) or 0.05
-        fakeFishState.stepDelay = tonumber(v) or 0.05
-    end
-})
-
-_G.Lock3 = _G.FakeFishSection:Dropdown({
-    Title = "Filter Rarity",
-    Desc = "Only catch these rarities",
-    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "SECRET" },
-    Multi = true,
-    AllowNone = true,
-    Callback = function(v)
-        fakeFishState.selectedRarities = v or {}
-    end
-})
-
-_G.FakeFishSection:Space()
 
 -- =======================================================
 -- AUTO ENCHANT (GLOBAL VARIABLE VERSION)
@@ -2692,11 +2277,11 @@ do
     
                     _G.autoEnchantState.stonesUsed = 0
                     local DataReplion = _G.Replion.Client:WaitReplion("Data")
-                    local EquipItemEvent = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipItem"]
-                    local EquipToolEvent = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipToolFromHotbar"]
-                    local UnequipItemEvent = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/UnequipItem"]
-                    local ActivateAltarEvent = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/ActivateEnchantingAltar"]
-                    local RollEnchantEvent = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/RollEnchant"]
+                    local EquipItemEvent = Net:RemoteEvent("EquipItem")
+                    local EquipToolEvent = Net:RemoteEvent("EquipToolFromHotbar")
+                    local UnequipItemEvent = Net:RemoteEvent("UnequipItem")
+                    local ActivateAltarEvent = Net:RemoteEvent("ActivateEnchantingAltar")
+                    local RollEnchantEvent = Net:RemoteEvent("RollEnchant")
     
                     while _G.autoEnchantState.enabled do
                         -- 2. Ambil Data Terbaru Rod
@@ -2834,8 +2419,8 @@ end
 
 
 local GlobalFav = {
-    REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"],
-    REFavoriteItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FavoriteItem"],
+    REObtainedNewFishNotification = Net:RemoteEvent("ObtainedNewFishNotification"),
+    REFavoriteItem = Net:RemoteEvent("FavoriteItem"),
 
     FishIdToName = {},
     FishNameToId = {},
@@ -4013,7 +3598,7 @@ end
 ----- =======[ ARTIFACT TAB ]
 -------------------------------------------
 
-local REPlaceLeverItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlaceLeverItem"]
+local REPlaceLeverItem = Net:RemoteEvent("PlaceLeverItem")
 
 _G.UnlockTemple = function()
     task.spawn(function()
@@ -4046,7 +3631,7 @@ _G.ArtifactSpots = {
         1, 5.05033348e-08, -0.164984599, 5.57616318e-08, -0.986296117)
 }
 
-local REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
+local REFishCaught = Net:RemoteEvent("FishCaught")
 
 local saveFile = "ArtifactProgress.json"
 
@@ -4237,7 +3822,7 @@ _G.ArtSec:Button({
 -------------------------------------------
 
 
-_G.REPlaceItems = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlacePressureItem"]
+_G.REPlaceItems = Net:RemoteEvent("PlacePressureItem")
 
 
 _G.UnlockRuin = function()
@@ -4266,7 +3851,7 @@ _G.TempleSpot = {
     ["Spot 4"] = CFrame.new(1502.93958, -22.1250019, -627.15155, -0.994363189, 2.65133604e-08, -0.106027618, 2.21884164e-08, 1, 4.19703348e-08, 0.106027618, 3.93811703e-08, -0.994363189),
 }
 
-_G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
+_G.REFishCaught = Net:RemoteEvent("FishCaught")
 
 _G.saveFile = "RuinsProgress.json"
 
@@ -4687,8 +4272,8 @@ local fullInventoryDropdownList = {}
 -- Asumsi Modul game inti sudah tersedia (seperti Replion)
 local ItemUtility = _G.ItemUtility or require(ReplicatedStorage.Shared.ItemUtility) 
 local ItemStringUtility = _G.ItemStringUtility or require(ReplicatedStorage.Modules.ItemStringUtility)
-local InitiateTrade = net:WaitForChild("RF/InitiateTrade") 
-local RFAwaitTradeResponse = net:WaitForChild("RF/AwaitTradeResponse") 
+local InitiateTrade = Net:RemoteFunction("InitiateTrade") 
+local RFAwaitTradeResponse = Net:RemoteFunction("AwaitTradeResponse") 
 
 -- Fungsi utilitas untuk mendapatkan daftar pemain
 local function getPlayerListV2()
@@ -4760,7 +4345,7 @@ end
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
-_G.REEquipItem = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipItem"]
+_G.REEquipItem = Net:RemoteEvent("EquipItem")
 
 
 mt.__namecall = newcclosure(function(self, ...)
@@ -5357,10 +4942,9 @@ end
 ----- =======[ PLAYER TAB ]
 -------------------------------------------
 
-_G.RadarRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/UpdateFishingRadar"]
-_G.EquipTankRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/EquipOxygenTank"]
-_G.UnequipTankRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/UnequipOxygenTank"]
-
+_G.RadarRemote = Net:RemoteFunction("UpdateFishingRadar")
+_G.EquipTankRemote = Net:RemoteFunction("EquipOxygenTank")
+_G.UnequipTankRemote = Net:RemoteFunction("UnequipOxygenTank")
 
 _G.RadarEnabled = false
 
@@ -5752,11 +5336,9 @@ _G.updateCharmParagraph = function()
     _G.CharmInfoParagraph:SetDesc(table.concat(lines, "\n"))
 end
 
-_G.PurchaseCharmRF = ReplicatedStorage
-    .Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseCharm"]
+_G.PurchaseCharmRF = Net:RemoteFunction("PurchaseCharm")
 
-_G.EquipCharmRE = ReplicatedStorage
-    .Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipCharm"]
+_G.EquipCharmRE = Net:RemoteEvent("EquipCharm")
     
 --------------------------------------------------------------------
 -- ========== [ CHARM DETAIL DROPDOWN ] ==========
@@ -5926,7 +5508,7 @@ _G.AutoSellEnchantState = {
     LoopThread = nil
 }
 
-_G.RFSellItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellItem"]
+_G.RFSellItem = Net:RemoteFunction("SellItem")
 
 
 _G.AutoSellProgressParagraph = Utils:Paragraph({
@@ -6081,7 +5663,7 @@ Utils:Toggle({
 Utils:Space()
 
 
-_G.RFRedeemCode = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/RedeemCode"]
+_G.RFRedeemCode = Net:RemoteFunction("RedeemCode")
 
 _G.RedeemCodes = {
     "BLAMETALON",
@@ -6119,7 +5701,7 @@ _G.ItemUtilityModule = require(ReplicatedStorage.Shared.ItemUtility)
 _G.ClientReplionModule = require(ReplicatedStorage.Packages._Index["ytrev_replion@2.0.0-rc.3"].replion.Client.ClientReplion)
 
 -- Menyimpan Remote Event
-_G.RESpawnTotem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/SpawnTotem"]
+_G.RESpawnTotem = Net:RemoteEvent("SpawnTotem")
 
 -- Mencoba mencari Remote Oxygen Tank (Untuk Anti-Drown)
 pcall(function()
@@ -6645,11 +6227,7 @@ local function randomDelay(min, max)
 end
 
 local function autoBuyWeather(weatherType)
-    local purchaseRemote = ReplicatedStorage:WaitForChild("Packages")
-        :WaitForChild("_Index")
-        :WaitForChild("sleitnick_net@0.2.0")
-        :WaitForChild("net")
-        :WaitForChild("RF/PurchaseWeatherEvent")
+    local purchaseRemote = Net:RemoteFunction("PurchaseWeatherEvent")
 
     task.spawn(function()
         while weatherActive[weatherType] do
@@ -6890,7 +6468,7 @@ Utils:Dropdown({
         local id = rodData[selectedName]
 
         SafePurchase(function()
-            net:WaitForChild("RF/PurchaseFishingRod"):InvokeServer(id)
+            Net:RemoteFunction("PurchaseFishingRod"):InvokeServer(id)
             NotifySuccess("Rod Purchased", selectedName .. " has been successfully purchased!")
         end)
     end,
@@ -6927,7 +6505,7 @@ Utils:Dropdown({
         local id = baitData[selectedName]
 
         SafePurchase(function()
-            net:WaitForChild("RF/PurchaseBait"):InvokeServer(id)
+            Net:RemoteFunction("PurchaseBait"):InvokeServer(id)
             NotifySuccess("Bait Purchased", selectedName .. " has been successfully purchased!")
         end)
     end,
@@ -7005,8 +6583,7 @@ local RodDelays = {
 
 local UserInputService = game:GetService("UserInputService")
 
-local REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
-["RE/ObtainedNewFishNotification"]
+local REObtainedNewFishNotification = Net:RemoteEvent("ObtainedNewFishNotification")
 
 local webhookPath = nil
 local FishWebhookEnabled = true
