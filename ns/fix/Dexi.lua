@@ -4950,76 +4950,102 @@ SettingsTab:Toggle({
 SettingsTab:Space()
 
 function BoostFPS()
-	for _, v in pairs(game:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.Material = Enum.Material.SmoothPlastic
-			v.Reflectance = 0
-			v.CastShadow = false
-			v.Transparency = v.Transparency > 0.5 and 1 or v.Transparency
-		elseif v:IsA("Decal") or v:IsA("Texture") then
-			v.Transparency = 1
-		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Explosion") then
-			v.Enabled = false
-		elseif v:IsA("Beam") or v:IsA("SpotLight") or v:IsA("PointLight") or v:IsA("SurfaceLight") then
-			v.Enabled = false
-		elseif v:IsA("ShirtGraphic") or v:IsA("Shirt") or v:IsA("Pants") then
-			v:Destroy()
-		end
-	end
+	for _, v in ipairs(game:GetDescendants()) do
+            pcall(function()
+                if v:IsA("BasePart") then
+                    v.Material = Enum.Material.SmoothPlastic
+                    v.Reflectance = 0
+                    v.CastShadow = false
+                    if v.Transparency > 0.5 then
+                        v.Transparency = 1
+                    end
 
-	local Lighting = game:GetService("Lighting")
-	for _, effect in pairs(Lighting:GetChildren()) do
-		if effect:IsA("PostEffect") then
-			effect.Enabled = false
-		end
-	end
-	Lighting.GlobalShadows = false
-	Lighting.FogEnd = 9e9
-	Lighting.Brightness = 1
-	Lighting.EnvironmentDiffuseScale = 0
-	Lighting.EnvironmentSpecularScale = 0
-	Lighting.ClockTime = 12
-	Lighting.Ambient = Color3.new(1, 1, 1)
-	Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+                elseif v:IsA("Decal") or v:IsA("Texture") then
+                    v.Transparency = 1
 
-	local Terrain = workspace:FindFirstChildOfClass("Terrain")
-	if Terrain then
-		Terrain.WaterWaveSize = 0
-		Terrain.WaterWaveSpeed = 0
-		Terrain.WaterReflectance = 0
-		Terrain.WaterTransparency = 1
-		Terrain.Decoration = false
-	end
+                elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                    v.Lifetime = NumberRange.new(0)
 
-	settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-	settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01
-	settings().Rendering.TextureQuality = Enum.TextureQuality.Low
+                elseif v:IsA("Smoke")
+                or v:IsA("Fire")
+                or v:IsA("Explosion")
+                or v:IsA("ForceField")
+                or v:IsA("Sparkles")
+                or v:IsA("Beam")
+                or v:IsA("SpotLight")
+                or v:IsA("PointLight")
+                or v:IsA("SurfaceLight") then
+                    v.Enabled = false
 
-	game:GetService("UserSettings").GameSettings.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
-	game:GetService("UserSettings").GameSettings.Fullscreen = true
+                elseif v:IsA("ShirtGraphic")
+                or v:IsA("Shirt")
+                or v:IsA("Pants") then
+                    v:Destroy()
+                end
+            end)
+        end
 
-	for _, s in pairs(workspace:GetDescendants()) do
-		if s:IsA("Sound") and s.Playing and s.Volume > 0.5 then
-			s.Volume = 0.1
-		end
-	end
+        -- Lighting optimization
+        local Lighting = game:GetService("Lighting")
+        for _, effect in ipairs(Lighting:GetChildren()) do
+            if effect:IsA("PostEffect") then
+                effect.Enabled = false
+            end
+        end
 
-	if collectgarbage then
-		collectgarbage("collect")
-	end
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 1e10
+        Lighting.Brightness = 1
+        Lighting.EnvironmentDiffuseScale = 0
+        Lighting.EnvironmentSpecularScale = 0
+        Lighting.ClockTime = 12
+        Lighting.Ambient = Color3.new(1,1,1)
+        Lighting.OutdoorAmbient = Color3.new(1,1,1)
 
-	local fullWhite = Instance.new("ScreenGui")
-	fullWhite.Name = "FullWhiteScreen"
-	fullWhite.ResetOnSpawn = false
-	fullWhite.IgnoreGuiInset = true
-	fullWhite.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	fullWhite.Parent = game:GetService("CoreGui")
+        -- Terrain optimization
+        local Terrain = workspace:FindFirstChildOfClass("Terrain")
+        if Terrain then
+            Terrain.WaterWaveSize = 0
+            Terrain.WaterWaveSpeed = 0
+            Terrain.WaterReflectance = 0
+            Terrain.WaterTransparency = 1
+            Terrain.Decoration = false
+        end
 
-	local whiteFrame = Instance.new("Frame")
-	whiteFrame.Size = UDim2.new(1, 0, 1, 0)
-	whiteFrame.BackgroundColor3 = Color3.new(1, 1, 1)
-	whiteFrame.BorderSizePixel = 0
-	whiteFrame.Parent = fullWhite
+        -- Reduce loud sounds
+        for _, s in ipairs(workspace:GetDescendants()) do
+            if s:IsA("Sound") and s.Playing then
+                s.Volume = 0
+            end
+        end
+
+        -- Garbage collect (safe)
+        pcall(function()
+            collectgarbage("collect")
+        end)
+
+        -- Full white screen (safe for Velocity)
+        local guiParent
+        pcall(function()
+            guiParent = game:GetService("CoreGui")
+        end)
+        if not guiParent then
+            guiParent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+        end
+
+        local fullWhite = Instance.new("ScreenGui")
+        fullWhite.Name = "FullWhiteScreen"
+        fullWhite.IgnoreGuiInset = true
+        fullWhite.ResetOnSpawn = false
+        fullWhite.Parent = guiParent
+
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1,0,1,0)
+        frame.BackgroundColor3 = Color3.new(1,1,1)
+        frame.BorderSizePixel = 0
+        frame.Parent = fullWhite
+
+        NotifySuccess("Boost FPS", "Ultra Low Graphics applied (Velocity Safe)")
 
 end
 
