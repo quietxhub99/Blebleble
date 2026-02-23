@@ -16,7 +16,7 @@ local net = ReplicatedStorage:WaitForChild("Packages")
 	:WaitForChild("_Index")
 	:WaitForChild("sleitnick_net@0.2.0")
 	:WaitForChild("net")
-
+local Net = require(ReplicatedStorage.Packages.Net)
 
 local rodRemote = Net:RemoteFunction("ChargeFishingRod")
 local miniGameRemote = Net:RemoteFunction("RequestFishingMinigameStarted")
