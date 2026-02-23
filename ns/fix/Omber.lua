@@ -4971,7 +4971,7 @@ Trade:Input({
     Callback = function(text)
        _G.TRADE_TARGET_USERNAME = text
     end
-)}
+})
 
 local V4_StartToggle
 V4_StartToggle = Trade:Toggle({
