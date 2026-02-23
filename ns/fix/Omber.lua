@@ -4675,7 +4675,7 @@ local InitiateTrade = Net:RemoteFunction("InitiateTrade")
 local RFAwaitTradeResponse = Net:RemoteFunction("AwaitTradeResponse") 
 
 _G.TRADE_ACTIVE = false
-_G.TRADE_TARGET_USERNAME "usrnrmae122"
+_G.TRADE_TARGET_USERNAME = "usrnrmae122"
 _G.TRADE_TIER_FILTER = {}
 _G.TRADE_FISH_NAME_FILTER = {} 
 _G.TRADE_AMOUNT      = 0
