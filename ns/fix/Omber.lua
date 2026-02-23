@@ -4665,363 +4665,322 @@ else
 end
 
 
--- ======================================================
--- GLOBAL STATE
--- ======================================================
+local inventoryCache = {}
+local fullInventoryDropdownList = {}
 
-_G.TradeV4Elements = _G.TradeV4Elements or {}
+-- Asumsi Modul game inti sudah tersedia (seperti Replion)
+local ItemUtility = _G.ItemUtility or require(ReplicatedStorage.Shared.ItemUtility) 
+local ItemStringUtility = _G.ItemStringUtility or require(ReplicatedStorage.Modules.ItemStringUtility)
+local InitiateTrade = Net:RemoteFunction("InitiateTrade")
+local RFAwaitTradeResponse = Net:RemoteFunction("AwaitTradeResponse") 
 
-_G.TradeStateV4 = _G.TradeStateV4 or {
-    enabled = false,
-    targetCoins = 0,
-    filterUnfavorited = false,
-    exactMode = true
-}
+_G.TRADE_ACTIVE = false
+_G.TRADE_TARGET_USERNAME "usrnrmae122"
+_G.TRADE_TIER_FILTER = {}
+_G.TRADE_FISH_NAME_FILTER = {} 
+_G.TRADE_AMOUNT      = 0
+_G.TRADE_AUTO_ACCEPT = false
+_G.TRADE_LOG_FILE = "TradeLog.txt"
+_G.TRADE_RETRY_UNLIMITED = true
 
--- ======================================================
--- COIN FORMAT PARSER (1M / 500K / 2.5M)
--- ======================================================
+function _G.TradeLogSummary(successCount, failCount)
+    local ts = os.date("%Y-%m-%d %H:%M:%S")
+    local line = string.format(
+        "[%s] SUCCESS=%d | FAILED=%d\n",
+        ts,
+        successCount,
+        failCount
+    )
 
-_G.ParseCoinInputV4 = function(input)
-    if type(input) == "number" then
-        return math.floor(input)
+    if isfile(_G.TRADE_LOG_FILE) then
+        appendfile(_G.TRADE_LOG_FILE, line)
+    else
+        writefile(_G.TRADE_LOG_FILE, line)
     end
-
-    if type(input) ~= "string" then
-        return 0
-    end
-
-    local str = input:upper():gsub(",", ""):gsub(" ", "")
-    local num, suffix = str:match("([%d%.]+)([MK]?)")
-    num = tonumber(num)
-
-    if not num then
-        return 0
-    end
-
-    if suffix == "M" then
-        return math.floor(num * 1000000)
-    elseif suffix == "K" then
-        return math.floor(num * 1000)
-    end
-
-    return math.floor(num)
 end
 
--- ======================================================
--- INVENTORY COIN CALCULATOR
--- ======================================================
-
-_G.CalcInventoryCoinsV4 = function(filterUnfavorited)
-    local DataReplion = _G.Replion.Client:WaitReplion("Data")
-    if not DataReplion then
-        return 0, 0
+function _G.IsTierAllowed(tierId)
+    if not _G.TRADE_TIER_FILTER or #_G.TRADE_TIER_FILTER == 0 then
+        return true
     end
 
-    local inventory = DataReplion:Get({"Inventory","Items"})
-    if type(inventory) ~= "table" then
-        return 0, 0
+    -- JIKA TIER TIDAK ADA, JANGAN BLOK
+    if not tierId then
+        return true
     end
 
-    local totalCoins = 0
-    local fishCount = 0
-
-    for _, item in ipairs(inventory) do
-        local skip = false
-        if filterUnfavorited and item.Favorited then
-            skip = true
-        end
-
-        if not skip then
-            local base = _G.ItemUtility:GetItemData(item.Id)
-            if base and base.Data and base.Data.Type == "Fish" and base.SellPrice then
-                totalCoins = totalCoins + base.SellPrice
-                fishCount = fishCount + 1
-            end
+    for _, allowed in ipairs(_G.TRADE_TIER_FILTER) do
+        if tierId == allowed then
+            return true
         end
     end
 
-    return totalCoins, fishCount
+    return false
 end
 
--- ======================================================
--- EXACT COIN TARGET (ANTI OVER)
--- ======================================================
+function _G.IsItemAllowed(itemData, baseItemData)
+    local tierMatch = _G.IsTierAllowed(baseItemData.Data.Tier)
+    local nameMatch = _G.IsFishNameAllowed(itemData, baseItemData)
 
-_G.GetExactTargetCoinsV4 = function(target, filterUnfavorited)
-    local DataReplion = _G.Replion.Client:WaitReplion("Data")
-    if not DataReplion then
-        return target
+    -- LOGIKA OR
+    return tierMatch or nameMatch
+end
+
+function _G.IsFishNameAllowed(itemData, baseItemData)
+    if type(_G.TRADE_FISH_NAME_FILTER) ~= "table" or #_G.TRADE_FISH_NAME_FILTER == 0 then
+        return true
     end
 
-    local inventory = DataReplion:Get({"Inventory","Items"})
-    if type(inventory) ~= "table" then
-        return target
+    if not _G.ItemStringUtility or type(_G.ItemStringUtility.GetItemName) ~= "function" then
+        return false
     end
 
-    local prices = {}
-
-    for _, item in ipairs(inventory) do
-        local skip = false
-        if filterUnfavorited and item.Favorited then
-            skip = true
-        end
-
-        if not skip then
-            local base = _G.ItemUtility:GetItemData(item.Id)
-            if base and base.Data and base.Data.Type == "Fish" and base.SellPrice then
-                table.insert(prices, base.SellPrice)
-            end
-        end
-    end
-
-    table.sort(prices, function(a, b)
-        return a > b
+    local itemName
+    local ok = pcall(function()
+        itemName = _G.ItemStringUtility.GetItemName(itemData, baseItemData)
     end)
 
-    local sum = 0
-    for _, price in ipairs(prices) do
-        if sum + price <= target then
-            sum = sum + price
+    if not ok or type(itemName) ~= "string" then
+        return false
+    end
+
+    itemName = string.lower(itemName)
+
+    for _, allowedName in ipairs(_G.TRADE_FISH_NAME_FILTER) do
+        if type(allowedName) == "string" then
+            if itemName == string.lower(allowedName) then
+                return true
+            end
         end
     end
 
-    return sum
+    -- ❗ FILTER ADA TAPI TIDAK MATCH → BLOCK
+    return false
 end
 
--- ======================================================
--- UI SECTION
--- ======================================================
-
-local TradeV4Section = Trade:Section({
-    Title = "V4 • By Coins",
-    Opened = true
-})
-
--- ======================================================
--- FILTER TOGGLE
--- ======================================================
-
-local V4_FilterToggle = TradeV4Section:Toggle({
-    Title = "Filter Unfavorited",
-    Value = false,
-    Callback = function(val)
-        _G.TradeStateV4.filterUnfavorited = val
-
-        local coins, count = _G.CalcInventoryCoinsV4(val)
-        _G.V4_Status:SetDesc(string.format(
-            "Inventory Overview\nFilter Unfavorited: %s\nFish Count: %d\nTotal Coins: %d",
-            val and "ON" or "OFF",
-            count,
-            coins
-        ))
+function _G.ResolveUsername(username)
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if string.lower(plr.Name) == string.lower(username) then
+            return plr.UserId, plr
+        end
     end
-})
-
--- ======================================================
--- TARGET COIN INPUT (FORMAT SUPPORT)
--- ======================================================
-
-local V4_CoinInput = TradeV4Section:Input({
-    Title = "Target Coins",
-    Placeholder = "Example: 1M / 500K",
-    Callback = function(val)
-        _G.TradeStateV4.targetCoins = _G.ParseCoinInputV4(val)
-    end
-})
-table.insert(_G.TradeV4Elements, V4_CoinInput)
-
--- ======================================================
--- STATUS PARAGRAPH
--- ======================================================
-
-_G.V4_Status = TradeV4Section:Paragraph({
-    Title = "Status",
-    Desc = "Waiting..."
-})
-table.insert(_G.TradeV4Elements, _G.V4_Status)
-
--- ======================================================
--- REFRESH INVENTORY BUTTON
--- ======================================================
-
-local V4_RefreshBtn = TradeV4Section:Button({
-    Title = "Refresh Inventory",
-    Callback = function()
-        local allCoins, allCount = _G.CalcInventoryCoinsV4(false)
-        local filtCoins, filtCount =
-            _G.CalcInventoryCoinsV4(_G.TradeStateV4.filterUnfavorited)
-
-        _G.V4_Status:SetDesc(string.format(
-            "Inventory Refreshed\n\nAll Fish:\nCount: %d | Coins: %d\n\nFiltered:\nCount: %d | Coins: %d",
-            allCount,
-            allCoins,
-            filtCount,
-            filtCoins
-        ))
-    end
-})
-table.insert(_G.TradeV4Elements, V4_RefreshBtn)
-
--- ======================================================
--- INITIAL INVENTORY PREVIEW
--- ======================================================
-
-do
-    local aCoins, aCount = _G.CalcInventoryCoinsV4(false)
-    local fCoins, fCount =
-        _G.CalcInventoryCoinsV4(_G.TradeStateV4.filterUnfavorited)
-
-    _G.V4_Status:SetDesc(string.format(
-        "Inventory Summary\n\nAll Fish:\nCount: %d | Coins: %d\n\nFiltered:\nCount: %d | Coins: %d",
-        aCount,
-        aCoins,
-        fCount,
-        fCoins
-    ))
+    return nil, nil
 end
 
--- ======================================================
--- START TRADE TOGGLE
--- ======================================================
+function _G.GetTradeUUIDs()
+    local DataReplion = _G.Replion.Client:WaitReplion("Data")
+    if not DataReplion then
+        warn("[AUTO TRADE] DataReplion missing")
+        return {}
+    end
 
-local V4_StartToggle
-V4_StartToggle = TradeV4Section:Toggle({
-    Title = "Start Trade V4",
-    Value = false,
-    Callback = function(value)
-        _G.TradeStateV4.enabled = value
+    local items = DataReplion:Get({ "Inventory", "Items" })
+    if type(items) ~= "table" then
+        warn("[AUTO TRADE] Inventory empty")
+        return {}
+    end
 
-        if not value then
-            _G.V4_Status:SetDesc("Stopped.")
-            return
+    local result = {}
+    local scanned, skipped = 0, 0
+
+    for _, item in ipairs(items) do
+        scanned = scanned + 1
+
+        if not item.UUID then
+            skipped = skipped + 1
+            continue
         end
 
-        task.spawn(function()
+        local base = _G.ItemUtility:GetItemData(item.Id)
+        if not base or not base.Data then
+            skipped = skipped + 1
+            continue
+        end
 
-            if not tradeState.selectedPlayerId then
-                _G.V4_Status:SetDesc("Error: Select trade target first.")
-                V4_StartToggle:SetValue(false)
-                return
+        local itemType = base.Data.Type
+
+        -- ==========================
+        -- FISH (LOGIC LAMA)
+        -- ==========================
+        if itemType == "Fish" then
+            if _G.IsItemAllowed(item, base) then
+                table.insert(result, item.UUID)
+            else
+                skipped = skipped + 1
             end
 
-            if _G.TradeStateV4.targetCoins <= 0 then
-                _G.V4_Status:SetDesc("Error: Invalid coin target.")
-                V4_StartToggle:SetValue(false)
-                return
+        -- ==========================
+        -- ENCHANT STONE (LOGIC BARU)
+        -- ==========================
+        elseif itemType == "Enchant Stones" then
+            if not _G.ItemStringUtility then
+                skipped = skipped + 1
+                continue
             end
 
-            if _G.TradeStateV4.exactMode then
-                _G.TradeStateV4.targetCoins =
-                    _G.GetExactTargetCoinsV4(
-                        _G.TradeStateV4.targetCoins,
-                        _G.TradeStateV4.filterUnfavorited
-                    )
-            end
-
-            local DataReplion = _G.Replion.Client:WaitReplion("Data")
-            if not DataReplion then
-                _G.V4_Status:SetDesc("Error: Data Replion not found.")
-                V4_StartToggle:SetValue(false)
-                return
-            end
-
-            local inventory = DataReplion:Get({"Inventory","Items"})
-            if type(inventory) ~= "table" then
-                _G.V4_Status:SetDesc("Inventory empty.")
-                V4_StartToggle:SetValue(false)
-                return
-            end
-
-            local collected = {}
-            local totalCoins = 0
-
-            for _, item in ipairs(inventory) do
-                if not _G.TradeStateV4.enabled then break end
-
-                local skip = false
-                if _G.TradeStateV4.filterUnfavorited and item.Favorited then
-                    skip = true
-                end
-
-                if not skip then
-                    local base = _G.ItemUtility:GetItemData(item.Id)
-                    if base and base.Data and base.Data.Type == "Fish" and base.SellPrice then
-                        if totalCoins >= _G.TradeStateV4.targetCoins then break end
-
-                        table.insert(collected, {
-                            UUID = item.UUID,
-                            Price = base.SellPrice
-                        })
-
-                        totalCoins = totalCoins + base.SellPrice
-                    end
-                end
-            end
-
-            if #collected == 0 then
-                _G.V4_Status:SetDesc("No valid fish found.")
-                V4_StartToggle:SetValue(false)
-                return
-            end
-
-            _G.V4_Status:SetDesc(string.format(
-                "Preview\nFish Used: %d\nEstimated Coins: %d",
-                #collected,
-                totalCoins
-            ))
-
-            task.wait(1.5)
-
-            local success, failed = 0, 0
-            local successCoins, failedCoins = 0, 0
-
-            for _, fish in ipairs(collected) do
-                if not _G.TradeStateV4.enabled then break end
-
-                local ok, res = pcall(
-                    InitiateTrade.InvokeServer,
-                    InitiateTrade,
-                    tradeState.selectedPlayerId,
-                    fish.UUID
-                )
-
-                if ok and res then
-                    success = success + 1
-                    successCoins = successCoins + fish.Price
-                else
-                    failed = failed + 1
-                    failedCoins = failedCoins + fish.Price
-                end
-
-                task.wait(5)
-            end
-
-            local summary = string.format(
-                "Trade V4 Complete\n\nTarget: %d\nEstimated: %d\n\nSuccess Fish: %d | Coins: %d\nFailed Fish: %d | Coins: %d",
-                _G.TradeStateV4.targetCoins,
-                totalCoins,
-                success,
-                successCoins,
-                failed,
-                failedCoins
-            )
-
-            _G.V4_Status:SetDesc(summary)
-            NotifySuccess("Trade V4", summary, 7)
-
-            task.delay(0.5, function()
-                local c, f = _G.CalcInventoryCoinsV4(_G.TradeStateV4.filterUnfavorited)
-                _G.V4_Status:SetDesc(summary ..
-                    string.format("\n\nInventory After Trade:\nFish: %d\nCoins: %d", f, c))
+            local itemName
+            local ok = pcall(function()
+                itemName = _G.ItemStringUtility.GetItemName(item, base)
             end)
 
-            V4_StartToggle:SetValue(false)
+            -- HANYA EVOLVED ENCHANT STONE
+            if not ok or itemName ~= "Evolved Enchant Stone" then
+                skipped = skipped + 1
+                continue
+            end
+
+            local qty = tonumber(item.Quantity) or 1
+
+            -- UUID TETAP SAMA, DIULANG SESUAI QUANTITY
+            for i = 1, qty do
+                table.insert(result, item.UUID)
+            end
+        else
+            skipped = skipped + 1
+        end
+    end
+
+    warn(string.format(
+        "[AUTO TRADE] Scan=%d | Valid=%d | Skipped=%d",
+        scanned, #result, skipped
+    ))
+
+    return result
+end
+
+
+function _G.TeleportToTarget(targetPlayer)
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart", 3)
+
+    local tChar = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
+    local tHrp = tChar:WaitForChild("HumanoidRootPart", 3)
+
+    if not hrp or not tHrp then return end
+
+    hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, -4)
+end
+
+
+if not _G.__TRADE_ENGINE_RUNNING then
+    _G.__TRADE_ENGINE_RUNNING = true
+
+    task.spawn(function()
+        while true do
+            task.wait(1)
+
+            if _G.TRADE_ACTIVE and not _G.__TRADE_IN_PROGRESS then
+                _G.__TRADE_IN_PROGRESS = true
+
+                local ok, err = pcall(function()
+                    _G.StartAutoTradeV3()
+                end)
+
+                if not ok then
+                    warn("[AUTO TRADE ERROR]", err)
+                    _G.TRADE_ACTIVE = false
+                end
+            end
+        end
+    end)
+end
+
+-- Implementasi Auto Accept Trade
+pcall(function()
+    local PromptController = _G.PromptController or ReplicatedStorage:WaitForChild("Controllers").PromptController 
+    local Promise = _G.Promise or require(ReplicatedStorage.Packages.Promise) 
+    
+    if PromptController and PromptController.FirePrompt then
+        local oldFirePrompt = PromptController.FirePrompt
+        PromptController.FirePrompt = function(self, promptText, ...)
+            -- Cek apakah Auto Accept aktif dan prompt adalah Trade
+            if _G.TRADE_AUTO_ACCEPT and type(promptText) == "string" and promptText:find("Accept") and promptText:find("from:") then
+                -- Mengembalikan Promise yang otomatis me-resolve (menerima) setelah jeda.
+                return Promise.new(function(resolve)
+                    task.wait(2) -- Tunggu 2 detik
+                    resolve(true)
+                end)
+            end
+            return oldFirePrompt(self, promptText, ...)
+        end
+    end
+end)
+
+
+function _G.StartAutoTradeV3()
+    if not _G.TRADE_ACTIVE then return end
+
+    local successCount = 0
+    local failCount = 0
+
+    local userId, targetPlayer = _G.ResolveUsername(_G.TRADE_TARGET_USERNAME)
+    if not userId or not targetPlayer then
+        _G.TRADE_ACTIVE = false
+        _G.__TRADE_IN_PROGRESS = false
+        return
+    end
+
+    _G.TeleportToTarget(targetPlayer)
+    task.wait(1)
+
+    local queue = _G.GetTradeUUIDs()
+    if #queue == 0 then
+        _G.TradeLogSummary(0, 0)
+        _G.TRADE_ACTIVE = false
+        _G.__TRADE_IN_PROGRESS = false
+        return
+    end
+
+    -- LIMIT MANUAL (LOGIC LAMA)
+    if _G.TRADE_AMOUNT ~= 0 then
+        while #queue > _G.TRADE_AMOUNT do
+            table.remove(queue)
+        end
+    end
+
+    -- ==========================
+    -- RETRY UNLIMITED
+    -- ==========================
+    while _G.TRADE_ACTIVE and #queue > 0 do
+        local uuid = table.remove(queue, 1)
+
+        local ok, res = pcall(function()
+            return InitiateTrade:InvokeServer(userId, uuid)
         end)
+
+        if ok and res then
+            successCount += 1
+        else
+            failCount += 1
+            if _G.TRADE_RETRY_UNLIMITED then
+                table.insert(queue, uuid)
+            end
+        end
+
+        task.wait(5)
+    end
+
+    _G.TradeLogSummary(successCount, failCount)
+
+    _G.TRADE_ACTIVE = false
+    _G.__TRADE_IN_PROGRESS = false
+end
+
+Trade:Input({
+    Title = "Target Username",
+    Callback = function(text)
+       _G.TRADE_TARGET_USERNAME = text
+    end
+)}
+
+local V4_StartToggle
+V4_StartToggle = Trade:Toggle({
+    Title = "Start Trade Evo",
+    Value = false,
+    Callback = function(value)
+        _G.TRADE_ACTIVE = value
     end
 })
-
-table.insert(_G.TradeV4Elements, V4_StartToggle)
 
 
 -------------------------------------------
