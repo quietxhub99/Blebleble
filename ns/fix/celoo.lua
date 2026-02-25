@@ -9,15 +9,12 @@ local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Madind
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local net = ReplicatedStorage:WaitForChild("Packages")
-    :WaitForChild("_Index")
-    :WaitForChild("sleitnick_net@0.2.0")
-    :WaitForChild("net")
+local Net = require(ReplicatedStorage.Packages.Net)
 
 local VirtualUser = game:GetService("VirtualUser")
-local rodRemote = net:WaitForChild("RF/ChargeFishingRod")
-local miniGameRemote = net:WaitForChild("RF/RequestFishingMinigameStarted")
-local finishRemote = net:WaitForChild("RF/CatchFishCompleted")
+local rodRemote = Net:RemoteFunction("ChargeFishingRod")
+local miniGameRemote = Net:RemoteFunction("RequestFishingMinigameStarted")
+local finishRemote = Net:RemoteFunction("CatchFishCompleted")
 local Constants = require(ReplicatedStorage:WaitForChild("Shared", 20):WaitForChild("Constants"))
 
 _G.Characters = workspace:FindFirstChild("Characters"):WaitForChild(LocalPlayer.Name)
@@ -674,20 +671,13 @@ _G.ItemStringUtility = require(
 -- REMOTES
 -------------------------------------------------
 _G.RFSpecialDialogueEvent =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RF/SpecialDialogueEvent"]
+    Net:RemoteFunction("SpecialDialogueEvent")
 
-_G.REEquipItem =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RE/EquipItem"]
+_G.REEquipItem = Net:RemoteEvent("EquipItem")
 
-_G.REEquipToolFromHotbar =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RE/EquipToolFromHotbar"]
+_G.REEquipToolFromHotbar = Net:RemoteEvent("EquipToolFromHotbar")
 
-_G.RFRedeemGift =
-    ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-        .net["RF/RedeemGift"]
+_G.RFRedeemGift = Net:RemoteFunction("RedeemGift")
 
 -------------------------------------------------
 -- GLOBAL STATE
@@ -1165,9 +1155,9 @@ _G.CEvent:Toggle({
 ----- =======[ AUTO FISH TAB ]
 -------------------------------------------
 
-_G.REFishingStopped = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishingStopped"]
-_G.RFCancelFishingInputs = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/CancelFishingInputs"]
-_G.REUpdateChargeState = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/UpdateChargeState"]
+_G.REFishingStopped = Net:RemoteEvent("FishingStopped")
+_G.RFCancelFishingInputs = Net:RemoteFunction("CancelFishingInputs")
+_G.REUpdateChargeState = Net:RemoteEvent("UpdateChargeState")
 
 
 _G.StopFishing = function()
@@ -1176,7 +1166,7 @@ _G.StopFishing = function()
 end
 
 local FuncAutoFish = {
-    REReplicateTextEffect = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ReplicateTextEffect"],
+    REReplicateTextEffect = Net:RemoteEvent("ReplicateTextEffect"),
     autofish5x = false,
     perfectCast5x = true,
     fishingActive = false,
@@ -1187,12 +1177,10 @@ local FuncAutoFish = {
 
 
 
-_G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
-_G.REPlayFishingEffect = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlayFishingEffect"]
-_G.equipRemote = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipToolFromHotbar"]
-_G.REObtainedNewFishNotification = ReplicatedStorage
-    .Packages._Index["sleitnick_net@0.2.0"]
-    .net["RE/ObtainedNewFishNotification"]
+_G.REFishCaught = Net:RemoteEvent("FishCaught")
+_G.REPlayFishingEffect = Net:RemoteEvent("PlayFishingEffect")
+_G.equipRemote = Net:RemoteEvent("EquipToolFromHotbar")
+_G.REObtainedNewFishNotification = Net:RemoteEvent("ObtainedNewFishNotification")
 
 
 _G.isSpamming = false
@@ -1301,8 +1289,8 @@ end)
 
 
 _G.RemotePackage = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
-_G.RemoteFish = _G.RemotePackage["RE/ObtainedNewFishNotification"]
-_G.RemoteSell = _G.RemotePackage["RF/SellAllItems"]
+_G.RemoteFish = Net:RemoteEvent("ObtainedNewFishNotification")
+_G.RemoteSell = Net:RemoteFunction("SellAllItems")
 
 _G.RemoteFish.OnClientEvent:Connect(function(_, _, data)
     if _G.sellActive and data then
@@ -1836,8 +1824,8 @@ _G.InvenSize = _G.FishAdvenc:Input({
 
 myConfig:Register("InventorySize", _G.InvenSize)
 
-local REEquipItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipItem"]
-local RFSellItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/SellItem"]
+local REEquipItem = Net:RemoteEvent("EquipItem")
+local RFSellItem = Net:RemoteFunction("SellItem")
 
 function ToggleAutoSellMythic(state)
     autoSellMythic = state
@@ -1895,7 +1883,7 @@ function sellAllFishes()
     end
 
     local originalPos = hrp.CFrame
-    local sellRemote = net:WaitForChild("RF/SellAllItems")
+    local sellRemote = Net:RemoteFunction("SellAllItems")
 
     task.spawn(function()
         NotifyInfo("Selling...", "I'm going to sell all the fish, please wait...", 3)
@@ -2139,11 +2127,11 @@ do
     
                     _G.autoEnchantState.stonesUsed = 0
                     local DataReplion = _G.Replion.Client:WaitReplion("Data")
-                    local EquipItemEvent = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipItem"]
-                    local EquipToolEvent = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipToolFromHotbar"]
-                    local UnequipItemEvent = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/UnequipItem"]
-                    local ActivateAltarEvent = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/ActivateEnchantingAltar"]
-                    local RollEnchantEvent = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net["RE/RollEnchant"]
+                    local EquipItemEvent = Net:RemoteEvent("EquipItem")
+                    local EquipToolEvent = Net:RemoteEvent("EquipToolFromHotbar")
+                    local UnequipItemEvent = Net:RemoteEvent("UnequipItem")
+                    local ActivateAltarEvent = Net:RemoteEvent("ActivateEnchantingAltar")
+                    local RollEnchantEvent = Net:RemoteEvent("RollEnchant")
     
                     while _G.autoEnchantState.enabled do
                         -- 2. Ambil Data Terbaru Rod
@@ -3274,7 +3262,7 @@ end
 ----- =======[ ARTIFACT TAB ]
 -------------------------------------------
 
-local REPlaceLeverItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlaceLeverItem"]
+local REPlaceLeverItem = Net:RemoteEvent("PlaceLeverItem")
 
 _G.UnlockTemple = function()
     task.spawn(function()
@@ -3307,7 +3295,7 @@ _G.ArtifactSpots = {
         1, 5.05033348e-08, -0.164984599, 5.57616318e-08, -0.986296117)
 }
 
-local REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
+local REFishCaught = Net:RemoteEvent("FishCaught")
 
 local saveFile = "ArtifactProgress.json"
 
@@ -3498,7 +3486,7 @@ _G.ArtSec:Button({
 -------------------------------------------
 
 
-_G.REPlaceItems = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/PlacePressureItem"]
+_G.REPlaceItems = Net:RemoteEvent("PlacePressureItem")
 
 
 _G.UnlockRuin = function()
@@ -3527,7 +3515,7 @@ _G.TempleSpot = {
     ["Spot 4"] = CFrame.new(1502.93958, -22.1250019, -627.15155, -0.994363189, 2.65133604e-08, -0.106027618, 2.21884164e-08, 1, 4.19703348e-08, 0.106027618, 3.93811703e-08, -0.994363189),
 }
 
-_G.REFishCaught = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FishCaught"]
+_G.REFishCaught = Net:RemoteEvent("FishCaught")
 
 _G.saveFile = "RuinsProgress.json"
 
@@ -3693,8 +3681,8 @@ _G.RuinSec:Button({
 
 
 local GlobalFav = {
-    REObtainedNewFishNotification = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/ObtainedNewFishNotification"],
-    REFavoriteItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/FavoriteItem"],
+    REObtainedNewFishNotification = Net:RemoteEvent("ObtainedNewFishNotification"),
+    REFavoriteItem = Net:RemoteEvent("FavoriteItem"),
 
     FishIdToName = {},
     FishNameToId = {},
@@ -4254,8 +4242,7 @@ _G.DStones:Button({
     Justify = "Center",
     Icon = "",
     Callback = function()
-        _G.ActivateDoubleEnchant = _G.ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
-        ["RE/ActivateSecondEnchantingAltar"]
+        _G.ActivateDoubleEnchant = Net:RemoteEvent("ActivateSecondEnchantingAltar")
         if _G.ActivateDoubleEnchant then
             _G.ActivateDoubleEnchant:FireServer()
             NotifySuccess("Double Enchant", "Double Enchant Enabled for Rods")
@@ -4273,8 +4260,7 @@ _G.DStones:Button({
     Justify = "Center",
     Icon = "",
     Callback = function()
-        _G.CreateTranscendedStone = _G.ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
-        ["RF/CreateTranscendedStone"]
+        _G.CreateTranscendedStone = Net:RemoteFunction("CreateTranscendedStone")
         if _G.CreateTranscendedStone then
             local result = _G.CreateTranscendedStone:InvokeServer()
             NotifySuccess("Double Enchant", "Got Enchant Stone!")
@@ -4292,8 +4278,7 @@ _G.DStones:Button({
     Justify = "Center",
     Icon = "",
     Callback = function()
-        _G.ActiveStone = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net
-        ["RE/ActivateSecondEnchantingAltar"]
+        _G.ActiveStone = Net:RemoteEvent("ActivateSecondEnchantingAltar")
         if _G.ActiveStone then
             local result = _G.ActiveStone:FireServer()
             NotifySuccess("Double Enchant", "Enchanting....")
@@ -4581,9 +4566,7 @@ _G.PotionsSec = Utils:Section({
 })
 
 -- Remote for consuming potions
-_G.RFConsumePotion = ReplicatedStorage
-    .Packages._Index["sleitnick_net@0.2.0"]
-    .net["RF/ConsumePotion"]
+_G.RFConsumePotion = Net:RemoteFunction("ConsumePotion")
 
 -- Global states
 _G.PotionInventoryCache = {} -- { ["Potion Name"] = {uuid1, uuid2, ...} }
@@ -4802,7 +4785,7 @@ task.spawn(function()
 end)
 
 
-_G.RFRedeemCode = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/RedeemCode"]
+_G.RFRedeemCode = Net:RemoteFunction("RedeemCode")
 
 _G.RedeemCodes = {
     "BLAMETALON",
@@ -4840,7 +4823,7 @@ _G.ItemUtilityModule = require(ReplicatedStorage.Shared.ItemUtility)
 _G.ClientReplionModule = require(ReplicatedStorage.Packages._Index["ytrev_replion@2.0.0-rc.3"].replion.Client.ClientReplion)
 
 -- Menyimpan Remote Event
-_G.RESpawnTotem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RE/SpawnTotem"]
+_G.RESpawnTotem = Net:RemoteEvent("SpawnTotem")
 
 -- Mencoba mencari Remote Oxygen Tank (Untuk Anti-Drown)
 pcall(function()
@@ -5352,7 +5335,7 @@ end)
 Utils:Space()
 
 
-local RFPurchaseMarketItem = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseMarketItem"]
+local RFPurchaseMarketItem = Net:RemoteFunction("PurchaseMarketItem")
 
 local merchantItems = {
     ["Item 1"] = 5,
@@ -5401,11 +5384,7 @@ local function randomDelay(min, max)
 end
 
 local function autoBuyWeather(weatherType)
-    local purchaseRemote = ReplicatedStorage:WaitForChild("Packages")
-        :WaitForChild("_Index")
-        :WaitForChild("sleitnick_net@0.2.0")
-        :WaitForChild("net")
-        :WaitForChild("RF/PurchaseWeatherEvent")
+    local purchaseRemote = Net:RemoteFunction("PurchaseWeatherEvent")
 
     task.spawn(function()
         while weatherActive[weatherType] do
@@ -5830,7 +5809,7 @@ Utils:Dropdown({
         local id = rodData[selectedName]
 
         SafePurchase(function()
-            net:WaitForChild("RF/PurchaseFishingRod"):InvokeServer(id)
+            Net:RemoteFunction("PurchaseFishingRod"):InvokeServer(id)
             NotifySuccess("Rod Purchased", selectedName .. " has been successfully purchased!")
         end)
     end,
@@ -5867,7 +5846,7 @@ Utils:Dropdown({
         local id = baitData[selectedName]
 
         SafePurchase(function()
-            net:WaitForChild("RF/PurchaseBait"):InvokeServer(id)
+            Net:RemoteFunction("PurchaseBait"):InvokeServer(id)
             NotifySuccess("Bait Purchased", selectedName .. " has been successfully purchased!")
         end)
     end,
