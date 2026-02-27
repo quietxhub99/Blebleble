@@ -6188,7 +6188,7 @@ SettingsTab:Space()
 
 
 task.defer(function()
-    task.wait(0.5)
+    task.wait(10)
     _G.__UIReady = true
 end)
 
