@@ -6190,6 +6190,7 @@ SettingsTab:Space()
 task.defer(function()
     task.wait(10)
     _G.__UIReady = true
+    NotifySuccess("BAC Bypass", "Bypass Loaded")
 end)
 
 myConfig:Load()
