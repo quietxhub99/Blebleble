@@ -73,12 +73,6 @@ _G.AntiAFKLoop = task.spawn(function()
     end
 end)
 
-task.spawn(function()
-    if XPBar then
-        XPBar.Enabled = true
-    end
-end)
-
 local TeleportService = game:GetService("TeleportService")
 local PlaceId = game.PlaceId
 

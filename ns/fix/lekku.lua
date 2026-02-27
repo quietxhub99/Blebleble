@@ -30,12 +30,6 @@ LocalPlayer.Idled:Connect(function()
     VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
 
-task.spawn(function()
-    if XPBar then
-        XPBar.Enabled = true
-    end
-end)
-
 local TeleportService = game:GetService("TeleportService")
 local PlaceId = game.PlaceId
 
