@@ -6188,7 +6188,7 @@ SettingsTab:Space()
 
 
 task.defer(function()
-    task.wait(10)
+    task.wait(15)
     _G.__UIReady = true
     NotifySuccess("BAC Bypass", "Bypass Loaded")
 end)
