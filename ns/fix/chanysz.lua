@@ -6417,6 +6417,6 @@ SettingsTab:Button({
 })
 
 task.defer(function()
-    task.wait(0.5) -- buffer sedikit untuk memuat element UI
+    task.wait(10) -- buffer sedikit untuk memuat element UI
     _G.__UIReady = true
 end)
