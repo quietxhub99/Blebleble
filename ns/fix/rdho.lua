@@ -390,7 +390,7 @@ function _G.loadPosition()
 
         print("[📍] CFrame berhasil diload!")
     else
-        warn("[❌] Tidak ada posisi tersimpan.")
+        warn("[❌] Tidak ada posisi .")
     end
 end
 
